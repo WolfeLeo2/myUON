@@ -1,0 +1,342 @@
+openapi: 3.0.3
+info:
+  title: myUON API
+  description: Official University of Nairobi Student Portal backend REST API.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns OK if the service is healthy.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /auth/signup:
+    post:
+      summary: Register a new student account
+      description: Issues a new identity in Neon Auth and registers the student record. (Rate limited to 10 req/min).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, regNo, fullName, faculty, department, program, yearOfStudy, semester, campus, nationalId, mobileNumber]
+              properties:
+                email:
+                  type: string
+                  example: jane.student@students.uonbi.ac.ke
+                password:
+                  type: string
+                  example: P@ssw0rd123!
+                regNo:
+                  type: string
+                  example: P15/12345/2022
+                fullName:
+                  type: string
+                  example: Jane Student
+                faculty:
+                  type: string
+                  example: Faculty of Science & Technology
+                department:
+                  type: string
+                  example: Department of Computer Science
+                program:
+                  type: string
+                  example: BSc Computer Science
+                yearOfStudy:
+                  type: integer
+                  example: 3
+                semester:
+                  type: integer
+                  example: 2
+                campus:
+                  type: string
+                  example: Chiromo
+                nationalId:
+                  type: string
+                  example: "38920192"
+                mobileNumber:
+                  type: string
+                  example: "0712345678"
+      responses:
+        '201':
+          description: Account successfully created
+        '400':
+          description: Validation error or account exists
+
+  /auth/login:
+    post:
+      summary: Dual-mode authentication (AD / SMIS)
+      description: Authenticates with either Active Directory student email or SMIS registration number. (Rate limited to 10 req/min).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, identifier, password]
+              properties:
+                mode:
+                  type: string
+                  enum: [AD, SMIS]
+                  example: SMIS
+                identifier:
+                  type: string
+                  example: P15/12345/2022
+                password:
+                  type: string
+                  example: P@ssw0rd123!
+      responses:
+        '200':
+          description: Authentication successful, returns session token
+        '401':
+          description: Invalid credentials
+
+  /units:
+    get:
+      summary: List available course units
+      parameters:
+        - name: academicYear
+          in: query
+          schema:
+            type: string
+            example: "2025/2026"
+        - name: semester
+          in: query
+          schema:
+            type: integer
+            example: 2
+      responses:
+        '200':
+          description: List of available course units
+
+  /units/registered:
+    get:
+      summary: Get registered course units for student
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+            example: P15/12345/2022
+      responses:
+        '200':
+          description: List of registered course units
+
+  /units/register:
+    post:
+      summary: Register course units for the semester
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [regNo, unitCodes]
+              properties:
+                regNo:
+                  type: string
+                  example: P15/12345/2022
+                unitCodes:
+                  type: array
+                  items:
+                    type: string
+                  example: ["CSC311", "CSC312", "CSC313"]
+                academicYear:
+                  type: string
+                  example: "2025/2026"
+                semester:
+                  type: integer
+                  example: 2
+      responses:
+        '201':
+          description: Units registered successfully
+
+  /grades:
+    get:
+      summary: Get student grade records & transcript
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+            example: P15/12345/2022
+      responses:
+        '200':
+          description: List of grade records
+
+  /academics/summary:
+    get:
+      summary: Get GPA and degree classification summary
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+            example: P15/12345/2022
+      responses:
+        '200':
+          description: Academic performance and degree classification
+
+  /timetable:
+    get:
+      summary: Get weekly lecture timetable
+      parameters:
+        - name: regNo
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Timetable entries
+
+  /exams/timetable:
+    get:
+      summary: Get end-of-semester exam timetable
+      parameters:
+        - name: regNo
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exam schedule
+
+  /exams/card:
+    get:
+      summary: Generate digitized exam clearance card with QR code
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Digitized exam clearance card
+
+  /attendance/summary:
+    get:
+      summary: Get attendance metrics vs. 75% Senate threshold
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: unitCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: CSC311
+      responses:
+        '200':
+          description: Attendance percentage and weekly breakdown
+
+  /fees/statement:
+    get:
+      summary: Get fee statement summary
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoiced, paid, and outstanding balance summary
+
+  /fees/transactions:
+    get:
+      summary: Get fee ledger transactions
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of fee transactions
+
+  /fees/mpesa-pay:
+    post:
+      summary: Initiate / record M-Pesa tuition fee payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [regNo, amount, phoneNumber]
+              properties:
+                regNo:
+                  type: string
+                  example: P15/12345/2022
+                amount:
+                  type: number
+                  example: 18000.0
+                phoneNumber:
+                  type: string
+                  example: "0712345678"
+      responses:
+        '201':
+          description: Payment recorded successfully
+
+  /hostels:
+    get:
+      summary: List residence halls and room vacancies
+      responses:
+        '200':
+          description: List of hostel halls
+
+  /hostels/booking:
+    get:
+      summary: Get student active room allocation
+      parameters:
+        - name: regNo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current room booking
+
+  /hostels/book:
+    post:
+      summary: Book a room in a residence hall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [regNo, hallName, roomNumber]
+              properties:
+                regNo:
+                  type: string
+                  example: P15/12345/2022
+                hallName:
+                  type: string
+                  example: Hall 9
+                roomNumber:
+                  type: string
+                  example: "204"
+      responses:
+        '201':
+          description: Room booked successfully
