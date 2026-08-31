@@ -17,7 +17,8 @@ data class TimetableUiState(
     val days: List<String> = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"),
     val allSlots: List<TimetableItem> = emptyList(),
     val filteredSlots: List<TimetableItem> = emptyList(),
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -28,6 +29,7 @@ class TimetableViewModel @Inject constructor(
 
     private val _selectedDay = MutableStateFlow("Monday")
     private val _isRefreshing = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(false)
     
     val uiState: StateFlow<TimetableUiState> = combine(
         authRepository.studentProfile,
@@ -42,11 +44,29 @@ class TimetableViewModel @Inject constructor(
             filteredSlots = slots.filter { it.dayOfWeek.equals(day, ignoreCase = true) },
             isRefreshing = refreshing
         )
+    }.combine(_isLoading) { state, loading ->
+        state.copy(isLoading = loading)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimetableUiState())
 
+    init {
+        viewModelScope.launch {
+            authRepository.studentProfile.collect { student ->
+                if (student != null) {
+                    if (timetableRepository.timetableSlots.value.isEmpty()) {
+                        _isLoading.value = true
+                        timetableRepository.refreshFromRemote(student.regNo)
+                        _isLoading.value = false
+                    }
+                }
+            }
+        }
+    }
+
     fun refreshData() {
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
+            timetableRepository.refreshFromRemote(regNo)
             _isRefreshing.value = false
         }
     }

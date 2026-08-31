@@ -1,8 +1,12 @@
 package com.wolfeleo2.myuon.data.repo
 
+import com.wolfeleo2.myuon.data.db.FeeDao
+import com.wolfeleo2.myuon.data.db.toDomain
+import com.wolfeleo2.myuon.data.db.toEntity
 import com.wolfeleo2.myuon.data.model.FeeStatement
 import com.wolfeleo2.myuon.data.model.FeeTransaction
 import com.wolfeleo2.myuon.data.model.TransactionType
+import com.wolfeleo2.myuon.data.preferences.UserPreferencesDataStore
 import com.wolfeleo2.myuon.data.remote.MyUonApiClient
 import com.wolfeleo2.myuon.ui.fees.FeeScopeMode
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +15,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -21,92 +26,123 @@ import javax.inject.Singleton
 
 @Singleton
 class FeeRepository @Inject constructor(
-    private val apiClient: MyUonApiClient
+    private val apiClient: MyUonApiClient,
+    private val feeDao: FeeDao,
+    private val preferencesDataStore: UserPreferencesDataStore
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val defaultStatement = FeeStatement(
-        academicYear = "2025/2026",
-        semester = 2,
-        totalInvoiced = 78500.0,
-        totalPaid = 78500.0,
-        outstandingBalance = 0.0,
-        helbDisbursed = 32000.0,
-        hefScholarship = 28000.0,
-        invoiceBreakdown = mapOf(
-            "Tuition Fees" to 62000.0,
-            "Examination Fee" to 5000.0,
-            "Medical Levy" to 3000.0,
-            "Computer & Internet Lab" to 5000.0,
-            "Library Fee" to 2000.0,
-            "Activity & Sports Fee" to 1000.0,
-            "UNSA Student Union" to 500.0
-        ),
-        transactions = listOf(
-            FeeTransaction("TX-89211", "SLP9381948", "15 May 2026", "Semester 2 Tuition Invoice", TransactionType.INVOICE, 78500.0, 78500.0),
-            FeeTransaction("TX-89212", "HEF20260520", "20 May 2026", "HEF GoK Band 2 Capitation Scholarship", TransactionType.HEF_SCHOLARSHIP, -28000.0, 50500.0),
-            FeeTransaction("TX-89213", "HLB9948172", "22 May 2026", "HELB Loan Semester 2 Disbursement", TransactionType.HELB_DISBURSEMENT, -32000.0, 18500.0),
-            FeeTransaction("TX-89214", "QK89217482", "28 May 2026", "M-Pesa Student Fee Top-up via eCitizen", TransactionType.PAYMENT_MPESA, -18500.0, 0.0)
-        )
-    )
+    private val _currentSemesterFeeStatement = MutableStateFlow<FeeStatement?>(null)
+    private val _scopedFeeStatement = MutableStateFlow<FeeStatement?>(null)
+    private val _academicYearFeeStatement = MutableStateFlow<FeeStatement?>(null)
 
-    private val defaultYearStatement = FeeStatement(
-        academicYear = "2025/2026",
-        semester = 2,
-        totalInvoiced = 157000.0,
-        totalPaid = 157000.0,
-        outstandingBalance = 0.0,
-        helbDisbursed = 64000.0,
-        hefScholarship = 56000.0,
-        invoiceBreakdown = mapOf(
-            "Tuition Fees (Sem 1 & 2)" to 124000.0,
-            "Examination Fees" to 10000.0,
-            "Medical Levy" to 6000.0,
-            "Computer & Lab Levies" to 10000.0,
-            "Library & Activity" to 6000.0,
-            "Student Union" to 1000.0
-        ),
-        transactions = defaultStatement.transactions
-    )
-
-    private val _semesterFeeStatement = MutableStateFlow<FeeStatement>(defaultStatement)
-    private val _academicYearFeeStatement = MutableStateFlow<FeeStatement>(defaultYearStatement)
-
-    val semesterFeeStatement: StateFlow<FeeStatement> = _semesterFeeStatement.asStateFlow()
-    val academicYearFeeStatement: StateFlow<FeeStatement> = _academicYearFeeStatement.asStateFlow()
-    val feeStatement: StateFlow<FeeStatement> = _semesterFeeStatement.asStateFlow()
+    val currentSemesterFeeStatement: StateFlow<FeeStatement?> = _currentSemesterFeeStatement.asStateFlow()
+    val scopedFeeStatement: StateFlow<FeeStatement?> = _scopedFeeStatement.asStateFlow()
+    val semesterFeeStatement: StateFlow<FeeStatement?> = _currentSemesterFeeStatement.asStateFlow()
+    val academicYearFeeStatement: StateFlow<FeeStatement?> = _academicYearFeeStatement.asStateFlow()
+    val feeStatement: StateFlow<FeeStatement?> = _currentSemesterFeeStatement.asStateFlow()
 
     init {
         scope.launch {
-            refreshFromRemote("P15/12345/2022")
+            // Load cached statements first for instantaneous offline availability
+            val cachedStatements = feeDao.getAllFeeStatements().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            val cachedSem = cachedStatements.firstOrNull { it.academicYear == "2025/2026" && it.semester == 2 }
+                ?: cachedStatements.firstOrNull { it.semester != 0 }
+            val cachedYear = cachedStatements.firstOrNull { it.academicYear == "2025/2026" && it.semester == 0 }
+                ?: cachedStatements.firstOrNull { it.semester == 0 }
+
+            if (cachedSem != null) {
+                _currentSemesterFeeStatement.value = cachedSem
+                _scopedFeeStatement.value = cachedSem
+            }
+            if (cachedYear != null) {
+                _academicYearFeeStatement.value = cachedYear
+            }
+
+            preferencesDataStore.activeStudentRegNo.collect { regNo ->
+                if (!regNo.isNullOrBlank()) {
+                    refreshFromRemote(regNo, "2025/2026", 2)
+                    fetchAcademicYearStatement(regNo, "2025/2026")
+                }
+            }
         }
     }
 
-    suspend fun refreshFromRemote(regNo: String) {
-        val remoteStatement = apiClient.getFeeStatement(regNo)
+    suspend fun refreshFromRemote(regNo: String, year: String = "2025/2026", sem: Int = 2) {
+        val remoteStatement = apiClient.getFeeStatement(regNo, year, sem)
         if (remoteStatement != null) {
-            _semesterFeeStatement.value = remoteStatement
+            if (year == "2025/2026" && sem == 2) {
+                _currentSemesterFeeStatement.value = remoteStatement
+            }
+            if (_scopedFeeStatement.value?.academicYear == year && _scopedFeeStatement.value?.semester == sem) {
+                _scopedFeeStatement.value = remoteStatement
+            } else if (_scopedFeeStatement.value == null && year == "2025/2026" && sem == 2) {
+                _scopedFeeStatement.value = remoteStatement
+            }
+            feeDao.insertStatement(remoteStatement.toEntity())
         }
     }
 
-    fun getFeeStatement(scopeMode: FeeScopeMode): FeeStatement {
+    suspend fun fetchAcademicYearStatement(regNo: String, year: String = "2025/2026") {
+        val remoteYearStatement = apiClient.getFeeStatement(regNo, year, sem = 0)
+        if (remoteYearStatement != null) {
+            _academicYearFeeStatement.value = remoteYearStatement
+            feeDao.insertStatement(remoteYearStatement.toEntity())
+        }
+    }
+
+    suspend fun loadStatementForScope(regNo: String, year: String, sem: Int, mode: FeeScopeMode) {
+        if (mode == FeeScopeMode.SEMESTER) {
+            val cached = feeDao.getFeeStatement(year, sem).firstOrNull()?.toDomain()
+            if (cached != null) {
+                _scopedFeeStatement.value = cached
+                if (year == "2025/2026" && sem == 2) {
+                    _currentSemesterFeeStatement.value = cached
+                }
+            }
+
+            val statement = apiClient.getFeeStatement(regNo, year, sem)
+            if (statement != null) {
+                _scopedFeeStatement.value = statement
+                if (year == "2025/2026" && sem == 2) {
+                    _currentSemesterFeeStatement.value = statement
+                }
+                feeDao.insertStatement(statement.toEntity())
+            }
+        } else {
+            val cached = feeDao.getFeeStatement(year, 0).firstOrNull()?.toDomain()
+            if (cached != null) {
+                _scopedFeeStatement.value = cached
+                _academicYearFeeStatement.value = cached
+            }
+
+            val statement = apiClient.getFeeStatement(regNo, year, sem = 0)
+            if (statement != null) {
+                _scopedFeeStatement.value = statement
+                _academicYearFeeStatement.value = statement
+                feeDao.insertStatement(statement.toEntity())
+            }
+        }
+    }
+
+    fun getFeeStatement(scopeMode: FeeScopeMode): FeeStatement? {
         return when (scopeMode) {
-            FeeScopeMode.SEMESTER -> _semesterFeeStatement.value
+            FeeScopeMode.SEMESTER -> _scopedFeeStatement.value ?: _currentSemesterFeeStatement.value
             FeeScopeMode.ACADEMIC_YEAR -> _academicYearFeeStatement.value
         }
     }
 
-    suspend fun recordMpesaPayment(amount: Double, mpesaCode: String, regNo: String = "P15/12345/2022"): Boolean {
-        val currentSemForValidation = _semesterFeeStatement.value
-        if (amount <= 0.0 || amount > currentSemForValidation.outstandingBalance) return false
+    suspend fun recordMpesaPayment(amount: Double, mpesaCode: String, regNo: String? = null): Boolean {
+        val studentRegNo = regNo ?: preferencesDataStore.activeStudentRegNo.firstOrNull() ?: return false
+        val currentSem = _currentSemesterFeeStatement.value ?: return false
+        if (amount <= 0.0 || amount > currentSem.outstandingBalance) return false
 
         val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
         val refCode = mpesaCode.ifBlank { "MP${UUID.randomUUID().toString().take(8).uppercase()}" }
         val dateStr = dateFormat.format(Date())
 
-        apiClient.recordMpesaPayment(regNo, amount, "0712345678")
+        apiClient.recordMpesaPayment(studentRegNo, amount, "0712345678")
 
-        val currentSem = _semesterFeeStatement.value
         val newSemBalance = (currentSem.outstandingBalance - amount).coerceAtLeast(0.0)
         val newSemTx = FeeTransaction(
             id = "TX-${UUID.randomUUID().toString().take(6).uppercase()}",
@@ -118,29 +154,44 @@ class FeeRepository @Inject constructor(
             balanceAfter = newSemBalance,
             isVerified = true
         )
-        _semesterFeeStatement.value = currentSem.copy(
+        val updatedSemStatement = currentSem.copy(
             totalPaid = currentSem.totalPaid + amount,
             outstandingBalance = newSemBalance,
             transactions = listOf(newSemTx) + currentSem.transactions
         )
+        _currentSemesterFeeStatement.value = updatedSemStatement
+        if (_scopedFeeStatement.value?.academicYear == currentSem.academicYear && _scopedFeeStatement.value?.semester == currentSem.semester) {
+            _scopedFeeStatement.value = updatedSemStatement
+        }
 
         val currentYear = _academicYearFeeStatement.value
-        val newYearBalance = (currentYear.outstandingBalance - amount).coerceAtLeast(0.0)
-        val newYearTx = FeeTransaction(
-            id = "TX-${UUID.randomUUID().toString().take(6).uppercase()}",
-            referenceNumber = refCode,
-            date = dateStr,
-            description = "M-Pesa eCitizen Paybill (300059) Student Payment",
-            type = TransactionType.PAYMENT_MPESA,
-            amount = -amount,
-            balanceAfter = newYearBalance,
-            isVerified = true
-        )
-        _academicYearFeeStatement.value = currentYear.copy(
-            totalPaid = currentYear.totalPaid + amount,
-            outstandingBalance = newYearBalance,
-            transactions = listOf(newYearTx) + currentYear.transactions
-        )
+        if (currentYear != null) {
+            val newYearBalance = (currentYear.outstandingBalance - amount).coerceAtLeast(0.0)
+            val newYearTx = FeeTransaction(
+                id = "TX-${UUID.randomUUID().toString().take(6).uppercase()}",
+                referenceNumber = refCode,
+                date = dateStr,
+                description = "M-Pesa eCitizen Paybill (300059) Student Payment",
+                type = TransactionType.PAYMENT_MPESA,
+                amount = -amount,
+                balanceAfter = newYearBalance,
+                isVerified = true
+            )
+            val updatedYearStatement = currentYear.copy(
+                totalPaid = currentYear.totalPaid + amount,
+                outstandingBalance = newYearBalance,
+                transactions = listOf(newYearTx) + currentYear.transactions
+            )
+            _academicYearFeeStatement.value = updatedYearStatement
+
+            scope.launch {
+                feeDao.insertStatements(listOf(updatedSemStatement.toEntity(), updatedYearStatement.toEntity()))
+            }
+        } else {
+            scope.launch {
+                feeDao.insertStatement(updatedSemStatement.toEntity())
+            }
+        }
         return true
     }
 }

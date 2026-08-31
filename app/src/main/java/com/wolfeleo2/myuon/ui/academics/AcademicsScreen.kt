@@ -73,68 +73,74 @@ fun AcademicsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Official Material 3 Expressive Connected Button Group (Tabs)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+            if (uiState.isLoading && uiState.gradeRecords.isEmpty() && uiState.courseUnits.isEmpty()) {
+                AcademicsSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    val tabs = listOf(
-                        AcademicsTab.GRADES to "Gradebook",
-                        AcademicsTab.UNIT_REGISTRATION to "Units",
-                        AcademicsTab.EXAM_SERVICES to "Exams"
-                    )
-                    tabs.forEachIndexed { index, (tab, title) ->
-                        ToggleButton(
-                            checked = uiState.selectedTab == tab,
-                            onCheckedChange = { viewModel.selectTab(tab) },
-                            shapes = when (index) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { role = Role.RadioButton }
-                        ) {
-                            Text(title, style = MaterialTheme.typography.labelMediumEmphasized)
+                    // Official Material 3 Expressive Connected Button Group (Tabs)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+                    ) {
+                        val tabs = listOf(
+                            AcademicsTab.GRADES to "Gradebook",
+                            AcademicsTab.UNIT_REGISTRATION to "Units",
+                            AcademicsTab.EXAM_SERVICES to "Exams"
+                        )
+                        tabs.forEachIndexed { index, (tab, title) ->
+                            ToggleButton(
+                                checked = uiState.selectedTab == tab,
+                                onCheckedChange = { viewModel.selectTab(tab) },
+                                shapes = when (index) {
+                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                    tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .semantics { role = Role.RadioButton }
+                            ) {
+                                Text(title, style = MaterialTheme.typography.labelMediumEmphasized)
+                            }
                         }
                     }
-                }
 
-                when (uiState.selectedTab) {
-                    AcademicsTab.GRADES -> {
-                        GradesTabContent(
-                            uiState = uiState,
-                            onSelectYear = viewModel::selectYear,
-                            onSelectSemester = viewModel::selectSemester,
-                            onOpenUnitDetail = onOpenUnitDetail,
-                            onOpenMissingMarks = onOpenMissingMarks,
-                            onOpenAttendance = onOpenAttendance
-                        )
-                    }
-                    AcademicsTab.UNIT_REGISTRATION -> {
-                        UnitRegistrationTabContent(
-                            uiState = uiState,
-                            onToggleUnit = viewModel::toggleUnit,
-                            onOpenUnitDetail = onOpenUnitDetail,
-                            onSubmit = viewModel::submitUnitRegistration,
-                            onOpenAttendance = onOpenAttendance
-                        )
-                    }
-                    AcademicsTab.EXAM_SERVICES -> {
-                        ExamServicesTabContent(
-                            uiState = uiState,
-                            onOpenExamCard = onOpenExamCard,
-                            onOpenSpecialExam = { onOpenSpecialExam("") },
-                            onOpenSupplementary = onOpenSupplementary,
-                            onOpenMissingMarks = onOpenMissingMarks,
-                            onOpenExamTimetable = onOpenExamTimetable
-                        )
+                    when (uiState.selectedTab) {
+                        AcademicsTab.GRADES -> {
+                            GradesTabContent(
+                                uiState = uiState,
+                                onSelectYear = viewModel::selectYear,
+                                onSelectSemester = viewModel::selectSemester,
+                                onOpenUnitDetail = onOpenUnitDetail,
+                                onOpenMissingMarks = onOpenMissingMarks,
+                                onOpenAttendance = onOpenAttendance
+                            )
+                        }
+                        AcademicsTab.UNIT_REGISTRATION -> {
+                            UnitRegistrationTabContent(
+                                uiState = uiState,
+                                onToggleUnit = viewModel::toggleUnit,
+                                onOpenUnitDetail = onOpenUnitDetail,
+                                onSubmit = viewModel::submitUnitRegistration,
+                                onOpenAttendance = onOpenAttendance
+                            )
+                        }
+                        AcademicsTab.EXAM_SERVICES -> {
+                            ExamServicesTabContent(
+                                uiState = uiState,
+                                onOpenExamCard = onOpenExamCard,
+                                onOpenSpecialExam = { onOpenSpecialExam("") },
+                                onOpenSupplementary = onOpenSupplementary,
+                                onOpenMissingMarks = onOpenMissingMarks,
+                                onOpenExamTimetable = onOpenExamTimetable
+                            )
+                        }
                     }
                 }
             }
@@ -234,13 +240,15 @@ private fun GradesTabContent(
             val attendanceModifier = if (sharedScope != null) {
                 with(sharedScope) {
                     Modifier.fillMaxWidth().sharedBounds(
-                        rememberSharedContentState(key = "attendance-CSC 311"),
+                        rememberSharedContentState(key = "attendance-general"),
                         animatedVisibilityScope = animatedScope
                     )
                 }
             } else Modifier.fillMaxWidth()
             Surface(
-                onClick = { onOpenAttendance("CSC 311") },
+                // Blank unitCode -> AttendanceLandingRoute (the general attendance landing
+                // page), per the routing in MyUonNavDisplay. Do not hardcode a unit here.
+                onClick = { onOpenAttendance("") },
                 shape = RoundedCornerShape(Sizes.cardCornerRadiusSm),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = attendanceModifier

@@ -26,11 +26,7 @@ data class MpesaPayRequest(
 fun Route.feeRoutes(feeRepository: FeeRepository) {
     route("/fees") {
         get("/statement") {
-            val regNo = call.request.queryParameters["regNo"]
-            if (regNo.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-                return@get
-            }
+            val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
             Validation.validateRegNo(regNo)
             val academicYear = call.request.queryParameters["academicYear"] ?: "2025/2026"
             val semester = call.request.queryParameters["semester"]?.toIntOrNull() ?: 2
@@ -43,11 +39,7 @@ fun Route.feeRoutes(feeRepository: FeeRepository) {
         }
 
         get("/transactions") {
-            val regNo = call.request.queryParameters["regNo"]
-            if (regNo.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-                return@get
-            }
+            val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
             Validation.validateRegNo(regNo)
             val txs = feeRepository.getFeeTransactions(regNo)
             call.respond(txs)

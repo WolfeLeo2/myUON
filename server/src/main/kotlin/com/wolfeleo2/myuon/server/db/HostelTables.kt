@@ -16,8 +16,8 @@ object HostelsTable : Table("hostels") {
 
 object HostelBookingsTable : Table("hostel_bookings") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
-    val hostelId = varchar("hostel_id", 50)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
+    val hostelId = varchar("hostel_id", 50) references HostelsTable.id
     val roomNumber = varchar("room_number", 20)
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")

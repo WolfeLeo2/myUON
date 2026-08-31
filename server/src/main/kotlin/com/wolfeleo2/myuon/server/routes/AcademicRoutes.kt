@@ -37,11 +37,20 @@ fun Route.academicRoutes(
     route("/units") {
         get {
             val academicYear = call.request.queryParameters["academicYear"] ?: "2025/2026"
-            val semester = call.request.queryParameters["semester"]?.toIntOrNull() ?: 2
+            val semester = call.request.queryParameters["semester"]?.toIntOrNull() ?: 0
             val yearOfStudy = call.request.queryParameters["yearOfStudy"]?.toIntOrNull()
-            require(semester in 1..3) { "Semester must be 1, 2, or 3" }
             val units = academicRepository.getAvailableUnits(academicYear, semester, yearOfStudy)
             call.respond(units)
+        }
+
+        get("/{code}") {
+            val code = call.parameters["code"] ?: ""
+            val unit = academicRepository.getUnitByCode(code)
+            if (unit != null) {
+                call.respond(unit)
+            } else {
+                call.respond(HttpStatusCode.NotFound, ErrorResponse("Unit not found for code $code"))
+            }
         }
 
         get("/registered") {
@@ -73,22 +82,14 @@ fun Route.academicRoutes(
     }
 
     get("/grades") {
-        val regNo = call.request.queryParameters["regNo"]
-        if (regNo.isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-            return@get
-        }
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
         Validation.validateRegNo(regNo)
         val grades = academicRepository.getGradeRecords(regNo)
         call.respond(grades)
     }
 
     get("/academics/summary") {
-        val regNo = call.request.queryParameters["regNo"]
-        if (regNo.isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-            return@get
-        }
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
         Validation.validateRegNo(regNo)
         val grades = academicRepository.getGradeRecords(regNo)
         val average = cumulativeAverage(grades)
@@ -107,25 +108,21 @@ fun Route.academicRoutes(
     }
 
     get("/timetable") {
-        val regNo = call.request.queryParameters["regNo"] ?: ""
-        if (regNo.isNotBlank()) Validation.validateRegNo(regNo)
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
+        Validation.validateRegNo(regNo)
         val items = academicRepository.getTimetable(regNo)
         call.respond(items)
     }
 
     get("/exams/timetable") {
-        val regNo = call.request.queryParameters["regNo"] ?: ""
-        if (regNo.isNotBlank()) Validation.validateRegNo(regNo)
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
+        Validation.validateRegNo(regNo)
         val items = academicRepository.getExamTimetable(regNo)
         call.respond(items)
     }
 
     get("/exams/card") {
-        val regNo = call.request.queryParameters["regNo"]
-        if (regNo.isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-            return@get
-        }
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
         Validation.validateRegNo(regNo)
         val student = studentRepository.findByRegNo(regNo)
         val examTimetable = academicRepository.getExamTimetable(regNo)
@@ -159,10 +156,10 @@ fun Route.academicRoutes(
     }
 
     get("/attendance/summary") {
-        val regNo = call.request.queryParameters["regNo"]
-        val unitCode = call.request.queryParameters["unitCode"]
-        if (regNo.isNullOrBlank() || unitCode.isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("regNo and unitCode parameters required"))
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
+        val unitCode = call.request.queryParameters["unitCode"] ?: ""
+        if (unitCode.isBlank()) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("unitCode parameter required"))
             return@get
         }
         Validation.validateRegNo(regNo)
@@ -175,13 +172,16 @@ fun Route.academicRoutes(
         }
     }
 
+    get("/attendance/overview") {
+        val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
+        Validation.validateRegNo(regNo)
+        val overview = academicRepository.getAttendanceOverview(regNo)
+        call.respond(overview)
+    }
+
     route("/requests") {
         get {
-            val regNo = call.request.queryParameters["regNo"]
-            if (regNo.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing regNo parameter"))
-                return@get
-            }
+            val regNo = call.request.queryParameters["regNo"]?.trim() ?: "P15/12345/2022"
             Validation.validateRegNo(regNo)
             val requests = academicRepository.getRequests(regNo)
             call.respond(requests)

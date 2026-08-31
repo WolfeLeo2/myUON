@@ -115,7 +115,7 @@ fun MyUonNavDisplay(
                             onOpenUnitDetail = { unitCode -> navigator.goTo(UnitDetail(unitCode)) },
                             onOpenVenueMap = { venue -> navigator.goTo(VenueMapScreen(venue)) },
                             onOpenExamTimetable = { navigator.goTo(ExamTimetableRoute) },
-                            onOpenAttendance = { navigator.goTo(AttendanceAnalyticsRoute("CSC 311")) },
+                            onOpenAttendance = { navigator.goTo(AttendanceLandingRoute) },
                             onProfileClick = { showProfileSheet = true },
                             onNotificationsClick = { showAnnouncementsSheet = true }
                         )
@@ -131,7 +131,10 @@ fun MyUonNavDisplay(
                             onOpenSupplementary = { navigator.goTo(SupplementaryRequestScreen) },
                             onOpenMissingMarks = { navigator.goTo(MissingMarksDisputeScreen) },
                             onOpenExamTimetable = { navigator.goTo(ExamTimetableRoute) },
-                            onOpenAttendance = { unitCode -> navigator.goTo(AttendanceAnalyticsRoute(unitCode)) },
+                            onOpenAttendance = { unitCode ->
+                                if (unitCode.isBlank()) navigator.goTo(AttendanceLandingRoute)
+                                else navigator.goTo(AttendanceAnalyticsRoute(unitCode))
+                            },
                             onProfileClick = { showProfileSheet = true },
                             onNotificationsClick = { showAnnouncementsSheet = true }
                         )
@@ -157,10 +160,21 @@ fun MyUonNavDisplay(
                         )
                     }
 
+                    entry<AttendanceLandingRoute> {
+                        AttendanceDashboardScreen(
+                            academicRepository = academicRepository,
+                            authRepository = authRepository,
+                            onBack = { navigator.goBack() },
+                            onOpenUnitAttendance = { unitCode -> navigator.goTo(AttendanceAnalyticsRoute(unitCode)) }
+                        )
+                    }
+
                     entry<AttendanceAnalyticsRoute> { key ->
+                        val overview by academicRepository.attendanceOverview.collectAsState()
+                        val targetSummary = overview.firstOrNull { it.unitCode == key.unitCode } ?: attendanceSummary
                         AttendanceAnalyticsScreen(
                             unitCode = key.unitCode,
-                            attendanceSummary = attendanceSummary,
+                            attendanceSummary = targetSummary,
                             onBack = { navigator.goBack() }
                         )
                     }

@@ -12,23 +12,28 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LoginUiState(
-    val regNo: String = "P15/12345/2022",
-    val adEmail: String = "leo@students.uonbi.ac.ke",
-    val password: String = "uon@2026",
+    val regNo: String = "",
+    val adEmail: String = "",
+    val password: String = "",
     val isAdLoginMode: Boolean = false,
     val isSignUpMode: Boolean = false,
     // Sign Up specific fields
-    val fullName: String = "Leo K.",
+    val fullName: String = "",
     val campus: String = UonCampuses.ALL[0],
-    val faculty: String = "Faculty of Science & Technology",
-    val department: String = "Department of Computer Science",
-    val program: String = "Bachelor of Science in Computer Science",
+    val faculty: String = "",
+    val department: String = "",
+    val program: String = "",
     val yearOfStudy: Int = 1,
     val semester: Int = 1,
-    val nationalId: String = "38920194",
-    val mobileNumber: String = "0712345678",
+    val nationalId: String = "",
+    val mobileNumber: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val fullNameError: String? = null,
+    val regNoError: String? = null,
+    val adEmailError: String? = null,
+    val mobileNumberError: String? = null,
+    val passwordError: String? = null,
     val isLoginSuccessful: Boolean = false
 )
 

@@ -1,7 +1,10 @@
 package com.wolfeleo2.myuon.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -137,5 +140,24 @@ fun rememberNavigator(authRepository: AuthRepository): Navigator {
         mutableStateOf<TopLevelDestination>(Dashboard)
     }
 
-    return remember { Navigator(tabStacks, currentTopLevelState, authRepository) }
+    val navigator = remember { Navigator(tabStacks, currentTopLevelState, authRepository) }
+
+    val isLoggedIn by authRepository.isLoggedIn.collectAsState()
+    val isSessionLoaded by authRepository.isSessionLoaded.collectAsState()
+
+    LaunchedEffect(isLoggedIn, isSessionLoaded) {
+        if (isSessionLoaded) {
+            if (isLoggedIn) {
+                if (navigator.backStack.contains(Login)) {
+                    navigator.replaceAll(Dashboard)
+                }
+            } else {
+                if (!navigator.backStack.contains(Login)) {
+                    navigator.replaceAll(Login)
+                }
+            }
+        }
+    }
+
+    return navigator
 }

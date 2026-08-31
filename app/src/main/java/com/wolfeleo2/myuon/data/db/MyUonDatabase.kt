@@ -10,10 +10,18 @@ import androidx.room.TypeConverters
         CourseUnitEntity::class,
         GradeRecordEntity::class,
         TimetableEntity::class,
-        HostelHallEntity::class
+        HostelHallEntity::class,
+        HostelBookingEntity::class,
+        AttendanceSummaryEntity::class,
+        FeeStatementEntity::class,
+        ExamCardEntity::class,
+        ExamTimetableEntity::class,
+        SpecialExamRequestEntity::class,
+        SupplementaryRequestEntity::class,
+        MissingMarksDisputeEntity::class
     ],
-    version = 2,
-    exportSchema = false
+    version = 4,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class MyUonDatabase : RoomDatabase() {
@@ -22,4 +30,9 @@ abstract class MyUonDatabase : RoomDatabase() {
     abstract fun gradeDao(): GradeDao
     abstract fun timetableDao(): TimetableDao
     abstract fun hostelDao(): HostelDao
+    abstract fun attendanceDao(): AttendanceDao
+    abstract fun feeDao(): FeeDao
+    abstract fun examCardDao(): ExamCardDao
+    abstract fun examTimetableDao(): ExamTimetableDao
+    abstract fun academicRequestDao(): AcademicRequestDao
 }

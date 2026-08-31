@@ -26,27 +26,14 @@ class AuthRepository @Inject constructor(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val defaultProfile = StudentProfile(
-        regNo = "P15/12345/2022",
-        fullName = "Leo K.",
-        studentEmail = "leo@students.uonbi.ac.ke",
-        faculty = "Faculty of Science & Technology",
-        department = "Department of Computer Science",
-        program = "Bachelor of Science in Computer Science",
-        yearOfStudy = 3,
-        semester = 2,
-        campus = "Chiromo Campus",
-        nationalId = "38920194",
-        mobileNumber = "+254 712 345 678",
-        isFeeCleared = true,
-        isBiometricEnabled = true
-    )
-
-    private val _studentProfile = MutableStateFlow<StudentProfile?>(defaultProfile)
+    private val _studentProfile = MutableStateFlow<StudentProfile?>(null)
     val studentProfile: StateFlow<StudentProfile?> = _studentProfile.asStateFlow()
 
-    private val _isLoggedIn = MutableStateFlow(true)
+    private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    private val _isSessionLoaded = MutableStateFlow(false)
+    val isSessionLoaded: StateFlow<Boolean> = _isSessionLoaded.asStateFlow()
 
     private var _sessionToken: String? = null
     val sessionToken: String? get() = _sessionToken
@@ -56,13 +43,26 @@ class AuthRepository @Inject constructor(
             val savedRegNo = preferencesDataStore.activeStudentRegNo.firstOrNull()
             if (!savedRegNo.isNullOrBlank()) {
                 val cached = studentDao.getStudent(savedRegNo).firstOrNull()
-                if (cached != null) {
-                    _studentProfile.value = cached.toDomain()
-                    _isLoggedIn.value = true
+                val profile = cached?.toDomain() ?: StudentProfile(
+                    regNo = savedRegNo,
+                    fullName = "Leo K.",
+                    studentEmail = "leo@students.uonbi.ac.ke",
+                    faculty = "Faculty of Science & Technology",
+                    department = "Department of Computer Science",
+                    program = "Bachelor of Science in Computer Science",
+                    yearOfStudy = 3,
+                    semester = 2,
+                    campus = "Chiromo Campus",
+                    nationalId = "",
+                    mobileNumber = ""
+                )
+                if (cached == null) {
+                    studentDao.insertOrUpdateStudent(profile.toEntity())
                 }
-            } else {
-                studentDao.insertOrUpdateStudent(defaultProfile.toEntity())
+                _studentProfile.value = profile
+                _isLoggedIn.value = true
             }
+            _isSessionLoaded.value = true
         }
     }
 
@@ -71,7 +71,20 @@ class AuthRepository @Inject constructor(
         val remote = apiClient.login("SMIS", trimmed, pass)
         if (remote != null) {
             _sessionToken = remote.sessionToken
-            val profile = _studentProfile.value?.copy(regNo = trimmed) ?: defaultProfile.copy(regNo = trimmed)
+            val cached = studentDao.getStudent(trimmed).firstOrNull()?.toDomain()
+            val profile = cached?.copy(regNo = trimmed) ?: StudentProfile(
+                regNo = trimmed,
+                fullName = "Leo K.",
+                studentEmail = "leo@students.uonbi.ac.ke",
+                faculty = "Faculty of Science & Technology",
+                department = "Department of Computer Science",
+                program = "Bachelor of Science in Computer Science",
+                yearOfStudy = 3,
+                semester = 2,
+                campus = "Chiromo Campus",
+                nationalId = "",
+                mobileNumber = ""
+            )
             studentDao.insertOrUpdateStudent(profile.toEntity())
             preferencesDataStore.setActiveStudentRegNo(trimmed)
             _studentProfile.value = profile
@@ -87,14 +100,6 @@ class AuthRepository @Inject constructor(
             _isLoggedIn.value = true
             return true
         }
-
-        if (trimmed == "P15/12345/2022" && pass == "uon@2026") {
-            studentDao.insertOrUpdateStudent(defaultProfile.toEntity())
-            preferencesDataStore.setActiveStudentRegNo(trimmed)
-            _studentProfile.value = defaultProfile
-            _isLoggedIn.value = true
-            return true
-        }
         return false
     }
 
@@ -103,18 +108,24 @@ class AuthRepository @Inject constructor(
         val remote = apiClient.login("AD", trimmed, pass)
         if (remote != null) {
             _sessionToken = remote.sessionToken
-            val profile = _studentProfile.value?.copy(studentEmail = trimmed) ?: defaultProfile.copy(studentEmail = trimmed)
+            val savedRegNo = preferencesDataStore.activeStudentRegNo.firstOrNull()
+            val cached = savedRegNo?.let { studentDao.getStudent(it).firstOrNull()?.toDomain() }
+            val profile = cached?.copy(studentEmail = trimmed) ?: StudentProfile(
+                regNo = "P15/12345/2022",
+                fullName = trimmed.substringBefore("@").replace(".", " ").capitalizeWords(),
+                studentEmail = trimmed,
+                faculty = "Faculty of Science & Technology",
+                department = "Department of Computer Science",
+                program = "Bachelor of Science in Computer Science",
+                yearOfStudy = 3,
+                semester = 2,
+                campus = "Chiromo Campus",
+                nationalId = "",
+                mobileNumber = ""
+            )
             studentDao.insertOrUpdateStudent(profile.toEntity())
             preferencesDataStore.setActiveStudentRegNo(profile.regNo)
             _studentProfile.value = profile
-            _isLoggedIn.value = true
-            return true
-        }
-
-        if (trimmed == "leo@students.uonbi.ac.ke" && pass == "uon@2026") {
-            studentDao.insertOrUpdateStudent(defaultProfile.toEntity())
-            preferencesDataStore.setActiveStudentRegNo(defaultProfile.regNo)
-            _studentProfile.value = defaultProfile
             _isLoggedIn.value = true
             return true
         }
@@ -191,5 +202,9 @@ class AuthRepository @Inject constructor(
                 studentDao.insertOrUpdateStudent(updated.toEntity())
             }
         }
+    }
+
+    private fun String.capitalizeWords(): String = split(" ").joinToString(" ") { word ->
+        word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 }

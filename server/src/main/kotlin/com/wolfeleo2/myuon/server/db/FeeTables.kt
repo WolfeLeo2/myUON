@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.Table
 
 object FeeStatementsTable : Table("fee_statements") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val totalInvoiced = double("total_invoiced").default(0.0)
@@ -17,7 +17,7 @@ object FeeStatementsTable : Table("fee_statements") {
 
 object FeeTransactionsTable : Table("fee_transactions") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val transactionType = varchar("transaction_type", 30)

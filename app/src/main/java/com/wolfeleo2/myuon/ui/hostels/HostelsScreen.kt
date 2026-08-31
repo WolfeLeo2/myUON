@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.wolfeleo2.myuon.data.model.GenderTarget
 import com.wolfeleo2.myuon.data.model.HostelHall
 import com.wolfeleo2.myuon.ui.components.ExpressiveTopAppBar
+import com.wolfeleo2.myuon.ui.components.HostelsSkeleton
 import com.wolfeleo2.myuon.ui.components.PullToRefreshBox
 import com.wolfeleo2.myuon.ui.theme.Sizes
 import com.wolfeleo2.myuon.ui.theme.Spacing
@@ -48,16 +49,21 @@ fun HostelsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = Spacing.screenHorizontal,
-                    end = Spacing.screenHorizontal,
-                    top = Spacing.sm,
-                    bottom = Spacing.xl
-                ),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                modifier = Modifier.fillMaxSize()
-            ) {
+            if (uiState.isLoading && uiState.halls.isEmpty()) {
+                HostelsSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = Spacing.screenHorizontal,
+                        end = Spacing.screenHorizontal,
+                        top = Spacing.sm,
+                        bottom = Spacing.xl
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    modifier = Modifier.fillMaxSize()
+                ) {
                 // Active Allocation Card
                 item {
                     if (activeBooking != null) {
@@ -186,9 +192,10 @@ fun HostelsScreen(
                 }
             }
         }
+    }
 
-        // Room Reservation Dialog
-        if (selectedHallForBooking != null) {
+    // Room Reservation Dialog
+    if (selectedHallForBooking != null) {
             val hall = selectedHallForBooking!!
             var selectedRoom by remember { mutableStateOf("104") }
             var selectedBed by remember { mutableStateOf("Bed 2 (Window)") }

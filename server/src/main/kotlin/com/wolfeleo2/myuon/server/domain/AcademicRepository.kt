@@ -10,8 +10,9 @@ interface AcademicRepository {
     suspend fun getExamTimetable(regNo: String): List<ExamTimetableItem>
     suspend fun getAttendanceSessions(unitCode: String): List<ClassSessionAttendance>
     suspend fun getStudentAttendance(regNo: String, unitCode: String): AttendanceSummary?
+    suspend fun getAttendanceOverview(regNo: String): List<AttendanceSummary>
     suspend fun submitSpecialExamRequest(request: SpecialExamRequest): SpecialExamRequest
     suspend fun submitSupplementaryRequest(request: SupplementaryRequest): SupplementaryRequest
     suspend fun submitMissingMarksDispute(request: MissingMarksDispute): MissingMarksDispute
-    suspend fun getRequests(regNo: String): List<Any>
+    suspend fun getRequests(regNo: String): AcademicRequestsResponse
 }

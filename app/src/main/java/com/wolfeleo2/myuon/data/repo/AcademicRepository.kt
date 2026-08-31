@@ -1,10 +1,8 @@
 package com.wolfeleo2.myuon.data.repo
 
-import com.wolfeleo2.myuon.data.db.CourseUnitDao
-import com.wolfeleo2.myuon.data.db.GradeDao
-import com.wolfeleo2.myuon.data.db.toDomain
-import com.wolfeleo2.myuon.data.db.toEntity
+import com.wolfeleo2.myuon.data.db.*
 import com.wolfeleo2.myuon.data.model.*
+import com.wolfeleo2.myuon.data.preferences.UserPreferencesDataStore
 import com.wolfeleo2.myuon.data.remote.MyUonApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +23,12 @@ import javax.inject.Singleton
 class AcademicRepository @Inject constructor(
     private val apiClient: MyUonApiClient,
     private val courseUnitDao: CourseUnitDao,
-    private val gradeDao: GradeDao
+    private val gradeDao: GradeDao,
+    private val attendanceDao: AttendanceDao,
+    private val examCardDao: ExamCardDao,
+    private val examTimetableDao: ExamTimetableDao,
+    private val academicRequestDao: AcademicRequestDao,
+    private val preferencesDataStore: UserPreferencesDataStore
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -38,57 +41,17 @@ class AcademicRepository @Inject constructor(
     private val _academicSummary = MutableStateFlow(AcademicSummary(emptyList()))
     val academicSummary: StateFlow<AcademicSummary> = _academicSummary.asStateFlow()
 
-    private val _examCard = MutableStateFlow<ExamCard>(
-        ExamCard(
-            cardId = "EC-9938472",
-            regNo = "P15/12345/2022",
-            studentName = "Leo K.",
-            faculty = "Faculty of Science & Technology",
-            program = "Bachelor of Science in Computer Science",
-            academicYear = "2025/2026",
-            semester = 2,
-            isFeeCleared = true,
-            isUnitsApproved = true,
-            qrVerificationToken = "UON-VERIFY-2026-P1512345-VALID-99482",
-            units = listOf(
-                ExamCardItem("CSC 311", "Advanced Database Systems", "15 Jun 2026", "09:00 - 12:00", "Chiromo Lab 02", "DK-042"),
-                ExamCardItem("CSC 315", "Operating Systems Principles", "18 Jun 2026", "14:00 - 17:00", "MLT 01 (Main Lecture Theatre)", "DK-105"),
-                ExamCardItem("CSC 321", "Distributed Systems & Cloud Computing", "22 Jun 2026", "09:00 - 12:00", "Chiromo Lab 01", "DK-018"),
-                ExamCardItem("CSC 323", "Artificial Intelligence & Machine Learning", "25 Jun 2026", "09:00 - 12:00", "Chiromo Lab 03", "DK-088"),
-                ExamCardItem("CSC 327", "Compiler Construction", "29 Jun 2026", "14:00 - 17:00", "Chiromo Rm 204", "DK-063"),
-                ExamCardItem("CSC 331", "Computer Graphics & Multimedia", "02 Jul 2026", "09:00 - 12:00", "Graphics Lab", "DK-031")
-            ),
-            generatedDate = "10 Jun 2026",
-            authorizedBy = "Academic Registrar (Examinations)"
-        )
-    )
-    val examCard: StateFlow<ExamCard> = _examCard.asStateFlow()
+    private val _examCard = MutableStateFlow<ExamCard?>(null)
+    val examCard: StateFlow<ExamCard?> = _examCard.asStateFlow()
 
-    private val _examTimetable = MutableStateFlow<List<ExamTimetableItem>>(
-        listOf(
-            ExamTimetableItem("EX-01", "CSC 311", "Advanced Database Systems", "15 Jun 2026", "09:00", "12:00", "Chiromo Lab 02", "Chiromo"),
-            ExamTimetableItem("EX-02", "CSC 315", "Operating Systems Principles", "18 Jun 2026", "14:00", "17:00", "MLT 01", "Main Campus"),
-            ExamTimetableItem("EX-03", "CSC 321", "Distributed Systems & Cloud Computing", "22 Jun 2026", "09:00", "12:00", "Chiromo Lab 01", "Chiromo"),
-            ExamTimetableItem("EX-04", "CSC 323", "Artificial Intelligence & Machine Learning", "25 Jun 2026", "09:00", "12:00", "Chiromo Lab 03", "Chiromo"),
-            ExamTimetableItem("EX-05", "CSC 327", "Compiler Construction", "29 Jun 2026", "14:00", "17:00", "Chiromo Rm 204", "Chiromo"),
-            ExamTimetableItem("EX-06", "CSC 331", "Computer Graphics & Multimedia", "02 Jul 2026", "09:00", "12:00", "Graphics Lab", "Chiromo")
-        )
-    )
+    private val _examTimetable = MutableStateFlow<List<ExamTimetableItem>>(emptyList())
     val examTimetable: StateFlow<List<ExamTimetableItem>> = _examTimetable.asStateFlow()
 
-    private val _attendanceSummary = MutableStateFlow<AttendanceSummary>(
-        AttendanceSummary(
-            unitCode = "CSC 311",
-            unitTitle = "Advanced Database Systems",
-            totalLecturesHeld = 24,
-            lecturesAttended = 22,
-            totalLabSessionsHeld = 12,
-            labSessionsAttended = 11,
-            weeklyBreakdown = emptyList(),
-            recentSessions = emptyList()
-        )
-    )
-    val attendanceSummary: StateFlow<AttendanceSummary> = _attendanceSummary.asStateFlow()
+    private val _attendanceSummary = MutableStateFlow<AttendanceSummary?>(null)
+    val attendanceSummary: StateFlow<AttendanceSummary?> = _attendanceSummary.asStateFlow()
+
+    private val _attendanceOverview = MutableStateFlow<List<AttendanceSummary>>(emptyList())
+    val attendanceOverview: StateFlow<List<AttendanceSummary>> = _attendanceOverview.asStateFlow()
 
     private val _specialExamRequests = MutableStateFlow<List<SpecialExamRequest>>(emptyList())
     val specialExamRequests: StateFlow<List<SpecialExamRequest>> = _specialExamRequests.asStateFlow()
@@ -113,8 +76,33 @@ class AcademicRepository @Inject constructor(
                 _academicSummary.value = AcademicSummary(cachedGrades)
             }
 
-            // 2. Fetch fresh data from remote server and update Room cache
-            refreshFromRemote("P15/12345/2022")
+            val cachedAttendance = attendanceDao.getAllAttendance().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            if (cachedAttendance.isNotEmpty()) {
+                _attendanceOverview.value = cachedAttendance
+                _attendanceSummary.value = cachedAttendance.firstOrNull()
+            }
+
+            val cachedExamSlots = examTimetableDao.getAllExamSlots().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            if (cachedExamSlots.isNotEmpty()) {
+                _examTimetable.value = cachedExamSlots
+            }
+
+            // 2. Continuously observe active logged in student and refresh on change / login
+            preferencesDataStore.activeStudentRegNo.collect { activeRegNo ->
+                if (!activeRegNo.isNullOrBlank()) {
+                    val cachedCard = examCardDao.getExamCard(activeRegNo).firstOrNull()?.toDomain()
+                    if (cachedCard != null) _examCard.value = cachedCard
+
+                    val cachedSpecial = academicRequestDao.getSpecialExams(activeRegNo).firstOrNull()?.map { it.toDomain() } ?: emptyList()
+                    val cachedSupp = academicRequestDao.getSupplementaryRequests(activeRegNo).firstOrNull()?.map { it.toDomain() } ?: emptyList()
+                    val cachedDisputes = academicRequestDao.getMissingMarksDisputes(activeRegNo).firstOrNull()?.map { it.toDomain() } ?: emptyList()
+                    if (cachedSpecial.isNotEmpty()) _specialExamRequests.value = cachedSpecial
+                    if (cachedSupp.isNotEmpty()) _supplementaryRequests.value = cachedSupp
+                    if (cachedDisputes.isNotEmpty()) _missingMarksDisputes.value = cachedDisputes
+
+                    refreshFromRemote(activeRegNo)
+                }
+            }
         }
     }
 
@@ -135,7 +123,59 @@ class AcademicRepository @Inject constructor(
         val remoteExamCard = apiClient.getExamCard(regNo)
         if (remoteExamCard != null) {
             _examCard.value = remoteExamCard
+            examCardDao.insertExamCard(remoteExamCard.toEntity())
         }
+
+        val remoteExamTimetable = apiClient.getExamTimetable(regNo)
+        if (!remoteExamTimetable.isNullOrEmpty()) {
+            _examTimetable.value = remoteExamTimetable
+            examTimetableDao.insertExamSlots(remoteExamTimetable.map { it.toEntity() })
+        }
+
+        val remoteAttendance = apiClient.getAttendanceOverview(regNo)
+        if (!remoteAttendance.isNullOrEmpty()) {
+            _attendanceOverview.value = remoteAttendance
+            _attendanceSummary.value = remoteAttendance.firstOrNull()
+            attendanceDao.insertAttendance(remoteAttendance.map { it.toEntity() })
+        }
+
+        val remoteRequests = apiClient.getAcademicRequests(regNo)
+        if (remoteRequests != null) {
+            if (remoteRequests.specialExams.isNotEmpty()) {
+                _specialExamRequests.value = remoteRequests.specialExams
+                academicRequestDao.insertSpecialExams(remoteRequests.specialExams.map { it.toEntity() })
+            }
+            if (remoteRequests.supplementaries.isNotEmpty()) {
+                _supplementaryRequests.value = remoteRequests.supplementaries
+                academicRequestDao.insertSupplementaryRequests(remoteRequests.supplementaries.map { it.toEntity() })
+            }
+            if (remoteRequests.missingMarks.isNotEmpty()) {
+                _missingMarksDisputes.value = remoteRequests.missingMarks
+                academicRequestDao.insertMissingMarksDisputes(remoteRequests.missingMarks.map { it.toEntity() })
+            }
+        }
+    }
+
+    suspend fun getUnitByCode(unitCode: String): CourseUnit? {
+        val cached = _courseUnits.value.firstOrNull { it.unitCode.equals(unitCode, ignoreCase = true) }
+        if (cached != null && cached.syllabusTopics.isNotEmpty()) return cached
+
+        val remote = apiClient.getUnitByCode(unitCode)
+        if (remote != null) {
+            courseUnitDao.insertUnits(listOf(remote.toEntity()))
+            _courseUnits.value = (_courseUnits.value.filterNot { it.unitCode == remote.unitCode } + remote)
+            return remote
+        }
+        return cached
+    }
+
+    suspend fun fetchUnitAttendance(regNo: String, unitCode: String): AttendanceSummary? {
+        val remote = apiClient.getStudentAttendance(regNo, unitCode)
+        if (remote != null) {
+            _attendanceSummary.value = remote
+            return remote
+        }
+        return _attendanceOverview.value.firstOrNull { it.unitCode == unitCode }
     }
 
     fun toggleUnitSelection(unitCode: String) {
@@ -154,10 +194,11 @@ class AcademicRepository @Inject constructor(
         }
     }
 
-    suspend fun submitUnitRegistration(regNo: String = "P15/12345/2022"): Boolean {
+    suspend fun submitUnitRegistration(regNo: String? = null): Boolean {
+        val studentRegNo = regNo ?: preferencesDataStore.activeStudentRegNo.firstOrNull() ?: return false
         val selectedCodes = _courseUnits.value.filter { it.status == UnitStatus.DRAFT }.map { it.unitCode }
         if (selectedCodes.isNotEmpty()) {
-            apiClient.registerUnits(regNo, selectedCodes)
+            apiClient.registerUnits(studentRegNo, selectedCodes)
         }
         val updatedList = _courseUnits.value.map { unit ->
             if (unit.status == UnitStatus.DRAFT) {
@@ -204,6 +245,10 @@ class AcademicRepository @Inject constructor(
             submissionDate = dateFormat.format(Date())
         )
         _specialExamRequests.value = listOf(newRequest) + _specialExamRequests.value
+        scope.launch {
+            academicRequestDao.insertSpecialExams(listOf(newRequest.toEntity()))
+            apiClient.submitSpecialExamRequest(newRequest)
+        }
         return true
     }
 
@@ -233,6 +278,10 @@ class AcademicRepository @Inject constructor(
             submissionDate = dateFormat.format(Date())
         )
         _supplementaryRequests.value = listOf(newRequest) + _supplementaryRequests.value
+        scope.launch {
+            academicRequestDao.insertSupplementaryRequests(listOf(newRequest.toEntity()))
+            apiClient.submitSupplementaryRequest(newRequest)
+        }
         return true
     }
 
@@ -268,6 +317,10 @@ class AcademicRepository @Inject constructor(
             submittedDate = dateFormat.format(Date())
         )
         _missingMarksDisputes.value = listOf(newDispute) + _missingMarksDisputes.value
+        scope.launch {
+            academicRequestDao.insertMissingMarksDisputes(listOf(newDispute.toEntity()))
+            apiClient.submitMissingMarksDispute(newDispute)
+        }
         return true
     }
 }

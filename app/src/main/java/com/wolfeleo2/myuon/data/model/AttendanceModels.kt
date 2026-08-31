@@ -52,8 +52,8 @@ data class AttendanceSummary(
     val lecturesAttended: Int,
     val totalLabSessionsHeld: Int,
     val labSessionsAttended: Int,
-    val weeklyBreakdown: List<AttendanceWeekRecord>,
-    val recentSessions: List<ClassSessionAttendance>
+    val weeklyBreakdown: List<AttendanceWeekRecord> = emptyList(),
+    val recentSessions: List<ClassSessionAttendance> = emptyList()
 ) {
     val overallPercentage: Double
         get() {

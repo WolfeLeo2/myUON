@@ -42,6 +42,9 @@ fun UnitDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(unitCode) {
+        viewModel.loadUnitDetail(unitCode)
+    }
     val unit = uiState.courseUnits.find { it.unitCode.equals(unitCode, ignoreCase = true) }
         ?: CourseUnit(
             unitCode = unitCode,

@@ -58,6 +58,9 @@ data object MissingMarksDisputeScreen : NavKey
 data object ExamTimetableRoute : NavKey
 
 @Serializable
+data object AttendanceLandingRoute : NavKey
+
+@Serializable
 data class AttendanceAnalyticsRoute(
     val unitCode: String = "CSC 311"
 ) : NavKey

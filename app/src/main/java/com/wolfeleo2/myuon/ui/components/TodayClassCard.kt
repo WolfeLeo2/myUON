@@ -77,12 +77,12 @@ fun TodayClassCard(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = slot.startTime,
+                        text = slot.startTime.formatTime(),
                         style = MaterialTheme.typography.labelLargeEmphasized,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = slot.endTime,
+                        text = slot.endTime.formatTime(),
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
@@ -151,4 +151,12 @@ fun TodayClassCard(
             }
         }
     }
+}
+
+fun String.formatTime(): String {
+    val trimmed = this.trim()
+    val parts = trimmed.split(":")
+    return if (parts.size >= 2) {
+        "${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}"
+    } else trimmed
 }

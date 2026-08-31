@@ -27,6 +27,7 @@ import com.wolfeleo2.myuon.data.model.TimetableItem
 import com.wolfeleo2.myuon.ui.components.ExpressiveTopAppBar
 import com.wolfeleo2.myuon.ui.components.LocalSharedTransitionScope
 import com.wolfeleo2.myuon.ui.components.PullToRefreshBox
+import com.wolfeleo2.myuon.ui.components.TimetableSkeleton
 import com.wolfeleo2.myuon.ui.theme.Sizes
 import com.wolfeleo2.myuon.ui.theme.Spacing
 
@@ -60,16 +61,21 @@ fun TimetableScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Day Selector Strip
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    modifier = Modifier.fillMaxWidth()
+            if (uiState.isLoading && uiState.allSlots.isEmpty()) {
+                TimetableSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(uiState.days) { day ->
+                    // Day Selector Strip
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(uiState.days) { day ->
                         val isSelected = day.equals(uiState.selectedDay, ignoreCase = true)
                         FilterChip(
                             selected = isSelected,
@@ -138,6 +144,7 @@ fun TimetableScreen(
         }
     }
 }
+}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -181,7 +188,7 @@ private fun TimetableCard(
                         Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${slot.startTime} — ${slot.endTime}",
+                            text = "${slot.startTime.formatTime()} — ${slot.endTime.formatTime()}",
                             style = MaterialTheme.typography.labelMediumEmphasized,
                             fontWeight = FontWeight.Bold
                         )
@@ -284,4 +291,12 @@ private fun TimetableCard(
             }
         }
     }
+}
+
+private fun String.formatTime(): String {
+    val trimmed = this.trim()
+    val parts = trimmed.split(":")
+    return if (parts.size >= 2) {
+        "${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}"
+    } else trimmed
 }

@@ -21,7 +21,7 @@ object DataModule {
             context,
             MyUonDatabase::class.java,
             "myuon.db"
-        ).fallbackToDestructiveMigration(true)
+        ).fallbackToDestructiveMigrationOnDowngrade(true)
         .build()
     }
 
@@ -39,4 +39,19 @@ object DataModule {
 
     @Provides
     fun provideHostelDao(db: MyUonDatabase): HostelDao = db.hostelDao()
+
+    @Provides
+    fun provideAttendanceDao(db: MyUonDatabase): AttendanceDao = db.attendanceDao()
+
+    @Provides
+    fun provideFeeDao(db: MyUonDatabase): FeeDao = db.feeDao()
+
+    @Provides
+    fun provideExamCardDao(db: MyUonDatabase): ExamCardDao = db.examCardDao()
+
+    @Provides
+    fun provideExamTimetableDao(db: MyUonDatabase): ExamTimetableDao = db.examTimetableDao()
+
+    @Provides
+    fun provideAcademicRequestDao(db: MyUonDatabase): AcademicRequestDao = db.academicRequestDao()
 }

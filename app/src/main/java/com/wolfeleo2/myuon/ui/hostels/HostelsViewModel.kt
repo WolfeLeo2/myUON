@@ -21,7 +21,8 @@ data class HostelsUiState(
     val selectedGenderFilter: GenderTarget? = null,
     val isBooking: Boolean = false,
     val message: String? = null,
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -34,6 +35,7 @@ class HostelsViewModel @Inject constructor(
     private val _isBooking = MutableStateFlow(false)
     private val _message = MutableStateFlow<String?>(null)
     private val _isRefreshing = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(false)
 
     val uiState: StateFlow<HostelsUiState> = combine(
         authRepository.studentProfile,
@@ -55,11 +57,29 @@ class HostelsViewModel @Inject constructor(
         state.copy(message = msg)
     }.combine(_isRefreshing) { state, refreshing ->
         state.copy(isRefreshing = refreshing)
+    }.combine(_isLoading) { state, loading ->
+        state.copy(isLoading = loading)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HostelsUiState())
 
+    init {
+        viewModelScope.launch {
+            authRepository.studentProfile.collect { student ->
+                if (student != null) {
+                    if (hostelRepository.hostels.value.isEmpty()) {
+                        _isLoading.value = true
+                        hostelRepository.refreshFromRemote(student.regNo)
+                        _isLoading.value = false
+                    }
+                }
+            }
+        }
+    }
+
     fun refreshData() {
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
+            hostelRepository.refreshFromRemote(regNo)
             _isRefreshing.value = false
         }
     }
@@ -71,7 +91,7 @@ class HostelsViewModel @Inject constructor(
     fun applyForRoom(hall: HostelHall, roomNumber: String, bedSpace: String) {
         viewModelScope.launch {
             _isBooking.value = true
-            val regNo = uiState.value.student?.regNo ?: "P15/12345/2022"
+            val regNo = uiState.value.student?.regNo ?: return@launch
             val success = hostelRepository.bookRoom(regNo, hall, roomNumber, bedSpace)
             _isBooking.value = false
             if (success) {

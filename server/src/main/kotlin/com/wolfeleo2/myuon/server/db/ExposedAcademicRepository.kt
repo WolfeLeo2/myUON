@@ -1,6 +1,7 @@
 package com.wolfeleo2.myuon.server.db
 
 import com.wolfeleo2.myuon.server.domain.AcademicRepository
+import com.wolfeleo2.myuon.server.domain.AcademicRequestsResponse
 import com.wolfeleo2.myuon.server.domain.AttendanceSummary
 import com.wolfeleo2.myuon.server.domain.AttendanceWeekRecord
 import com.wolfeleo2.myuon.server.domain.ClassSessionAttendance
@@ -33,10 +34,18 @@ class ExposedAcademicRepository(private val database: Database) : AcademicReposi
         semester: Int,
         yearOfStudy: Int?
     ): List<CourseUnit> = dbQuery {
-        val query = if (yearOfStudy != null) {
-            UnitsTable.selectAll().where { (UnitsTable.semester eq semester) and (UnitsTable.yearOfStudy eq yearOfStudy) }
+        val query = if (semester in 1..3) {
+            if (yearOfStudy != null) {
+                UnitsTable.selectAll().where { (UnitsTable.semester eq semester) and (UnitsTable.yearOfStudy eq yearOfStudy) }
+            } else {
+                UnitsTable.selectAll().where { UnitsTable.semester eq semester }
+            }
         } else {
-            UnitsTable.selectAll().where { UnitsTable.semester eq semester }
+            if (yearOfStudy != null) {
+                UnitsTable.selectAll().where { UnitsTable.yearOfStudy eq yearOfStudy }
+            } else {
+                UnitsTable.selectAll()
+            }
         }
         query.map { it.toCourseUnit() }
     }
@@ -169,8 +178,8 @@ class ExposedAcademicRepository(private val database: Database) : AcademicReposi
             TimetableItem(
                 id = row[TimetableItemsTable.id].toString(),
                 dayOfWeek = row[TimetableItemsTable.dayOfWeek],
-                startTime = row[TimetableItemsTable.startTime],
-                endTime = row[TimetableItemsTable.endTime],
+                startTime = row[TimetableItemsTable.startTime].take(5),
+                endTime = row[TimetableItemsTable.endTime].take(5),
                 unitCode = code,
                 unitTitle = unit?.get(UnitsTable.title) ?: code,
                 lecturer = unit?.get(UnitsTable.lecturerName) ?: "Lecturer",
@@ -191,8 +200,8 @@ class ExposedAcademicRepository(private val database: Database) : AcademicReposi
                 unitCode = code,
                 unitTitle = unit?.get(UnitsTable.title) ?: code,
                 examDate = row[ExamTimetableItemsTable.examDate],
-                startTime = row[ExamTimetableItemsTable.startTime],
-                endTime = row[ExamTimetableItemsTable.endTime],
+                startTime = row[ExamTimetableItemsTable.startTime].take(5),
+                endTime = row[ExamTimetableItemsTable.endTime].take(5),
                 venue = row[ExamTimetableItemsTable.venue],
                 campus = "Main Campus"
             )
@@ -217,23 +226,108 @@ class ExposedAcademicRepository(private val database: Database) : AcademicReposi
     }
 
     override suspend fun getStudentAttendance(regNo: String, unitCode: String): AttendanceSummary? = dbQuery {
+        fetchStudentAttendance(regNo, unitCode)
+    }
+
+    override suspend fun getAttendanceOverview(regNo: String): List<AttendanceSummary> = dbQuery {
         val student = StudentsTable.selectAll().where { StudentsTable.regNo eq regNo }.singleOrNull()
-            ?: return@dbQuery null
+            ?: return@dbQuery emptyList()
+
+        val yearOfStudy = student[StudentsTable.yearOfStudy]
+        val semester = student[StudentsTable.semester]
+
+        val unitCodes = UnitsTable.selectAll()
+            .where { (UnitsTable.yearOfStudy eq yearOfStudy) and (UnitsTable.semester eq semester) }
+            .map { it[UnitsTable.code] }
+
+        unitCodes.mapNotNull { code -> fetchStudentAttendance(regNo, code) }
+    }
+
+    private fun fetchStudentAttendance(regNo: String, unitCode: String): AttendanceSummary? {
+        val student = StudentsTable.selectAll().where { StudentsTable.regNo eq regNo }.singleOrNull()
+            ?: return null
         val unit = UnitsTable.selectAll().where { UnitsTable.code eq unitCode }.singleOrNull()
-            ?: return@dbQuery null
+            ?: return null
 
-        val sessions = AttendanceSessionsTable.selectAll().where { AttendanceSessionsTable.unitCode eq unitCode }
-            .map { it.toSessionAttendance() }
+        val studentId = student[StudentsTable.userId]
+        // Explicit join condition: StudentAttendanceTable.sessionId has no declared FK
+        // (references()) to AttendanceSessionsTable.id, so the implicit `innerJoin` can't
+        // infer how to join them and throws at query time. State the condition directly.
+        val attendanceRows = AttendanceSessionsTable
+            .join(
+                StudentAttendanceTable,
+                org.jetbrains.exposed.sql.JoinType.INNER,
+                onColumn = AttendanceSessionsTable.id,
+                otherColumn = StudentAttendanceTable.sessionId,
+            )
+            .selectAll()
+            .where {
+                (AttendanceSessionsTable.unitCode eq unitCode) and
+                (StudentAttendanceTable.studentId eq studentId)
+            }
+            .orderBy(AttendanceSessionsTable.weekNumber to org.jetbrains.exposed.sql.SortOrder.ASC)
+            .toList()
 
-        AttendanceSummary(
+        val allSessions = if (attendanceRows.isNotEmpty()) {
+            attendanceRows.map { row ->
+                val dateStr = row[AttendanceSessionsTable.sessionDate].toString()
+                val isAtt = row[StudentAttendanceTable.isAttended]
+                val sessNum = row[AttendanceSessionsTable.sessionNumber]
+                val weekNum = row[AttendanceSessionsTable.weekNumber]
+                ClassSessionAttendance(
+                    id = row[AttendanceSessionsTable.id].toString(),
+                    unitCode = unitCode,
+                    date = dateStr,
+                    timeSlot = if (sessNum == 1) "09:00 - 11:00" else "14:00 - 16:00",
+                    sessionType = if (sessNum == 1) "Lecture" else "Laboratory",
+                    topicCovered = "Week $weekNum Session $sessNum: Practical & Theory",
+                    hours = 2.0,
+                    isAttended = isAtt,
+                    venue = if (sessNum == 1) "Chiromo Lab 02" else "Lab 01"
+                )
+            }
+        } else {
+            AttendanceSessionsTable.selectAll().where { AttendanceSessionsTable.unitCode eq unitCode }
+                .orderBy(AttendanceSessionsTable.weekNumber to org.jetbrains.exposed.sql.SortOrder.ASC)
+                .map { row ->
+                    val sessNum = row[AttendanceSessionsTable.sessionNumber]
+                    val weekNum = row[AttendanceSessionsTable.weekNumber]
+                    ClassSessionAttendance(
+                        id = row[AttendanceSessionsTable.id].toString(),
+                        unitCode = unitCode,
+                        date = row[AttendanceSessionsTable.sessionDate].toString(),
+                        timeSlot = if (sessNum == 1) "09:00 - 11:00" else "14:00 - 16:00",
+                        sessionType = if (sessNum == 1) "Lecture" else "Laboratory",
+                        topicCovered = "Week $weekNum Session $sessNum: Practical & Theory",
+                        hours = 2.0,
+                        isAttended = true,
+                        venue = "Chiromo Lab 02"
+                    )
+                }
+        }
+
+        val weeks = allSessions.groupBy { it.topicCovered.substringBefore(" Session") }.map { (label, sess) ->
+            AttendanceWeekRecord(
+                weekLabel = label,
+                weekStartDate = sess.firstOrNull()?.date ?: "",
+                sessions = sess
+            )
+        }
+
+        val totalLectures = allSessions.count { it.sessionType == "Lecture" }
+        val lecturesAttended = allSessions.count { it.sessionType == "Lecture" && it.isAttended }
+        val totalLabs = allSessions.count { it.sessionType == "Laboratory" }
+        val labsAttended = allSessions.count { it.sessionType == "Laboratory" && it.isAttended }
+
+        return AttendanceSummary(
             unitCode = unitCode,
             unitTitle = unit[UnitsTable.title],
-            totalLecturesHeld = sessions.size,
-            lecturesAttended = sessions.count { it.isAttended },
-            totalLabSessionsHeld = 0,
-            labSessionsAttended = 0,
-            weeklyBreakdown = listOf(AttendanceWeekRecord("Week 1", "2026-01-12", sessions)),
-            recentSessions = sessions
+            totalLecturesHeld = totalLectures,
+            lecturesAttended = lecturesAttended,
+            totalLabSessionsHeld = totalLabs,
+            labSessionsAttended = labsAttended,
+            weeklyBreakdown = weeks,
+            recentSessions = allSessions.takeLast(4)
         )
     }
 
@@ -291,53 +385,69 @@ class ExposedAcademicRepository(private val database: Database) : AcademicReposi
         request.copy(disputeId = uuid.toString())
     }
 
-    override suspend fun getRequests(regNo: String): List<Any> = dbQuery {
+    override suspend fun getRequests(regNo: String): AcademicRequestsResponse = dbQuery {
         val student = StudentsTable.selectAll().where { StudentsTable.regNo eq regNo }.singleOrNull()
         val studentId = student?.get(StudentsTable.userId) ?: regNo
 
+        val specialExams = mutableListOf<SpecialExamRequest>()
+        val supplementaries = mutableListOf<SupplementaryRequest>()
+        val missingMarks = mutableListOf<MissingMarksDispute>()
+
         AcademicRequestsTable.selectAll().where { AcademicRequestsTable.studentId eq studentId }
-            .map { row ->
+            .forEach { row ->
                 val type = row[AcademicRequestsTable.requestType]
                 val unitCode = row[AcademicRequestsTable.unitCode]
                 val unit = UnitsTable.selectAll().where { UnitsTable.code eq unitCode }.singleOrNull()
                 val unitTitle = unit?.get(UnitsTable.title) ?: unitCode
                 when (type) {
-                    "SPECIAL_EXAM" -> SpecialExamRequest(
-                        requestId = row[AcademicRequestsTable.id].toString(),
-                        regNo = regNo,
-                        unitCode = unitCode,
-                        unitTitle = unitTitle,
-                        academicYear = row[AcademicRequestsTable.academicYear],
-                        semester = row[AcademicRequestsTable.semester],
-                        reasonCategory = "Medical",
-                        explanation = row[AcademicRequestsTable.reason],
-                        status = RequestStatus.valueOf(row[AcademicRequestsTable.status]),
-                        submissionDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                    "SPECIAL_EXAM" -> specialExams.add(
+                        SpecialExamRequest(
+                            requestId = row[AcademicRequestsTable.id].toString(),
+                            regNo = regNo,
+                            unitCode = unitCode,
+                            unitTitle = unitTitle,
+                            academicYear = row[AcademicRequestsTable.academicYear],
+                            semester = row[AcademicRequestsTable.semester],
+                            reasonCategory = "Medical",
+                            explanation = row[AcademicRequestsTable.reason],
+                            status = runCatching { RequestStatus.valueOf(row[AcademicRequestsTable.status]) }.getOrDefault(RequestStatus.PENDING),
+                            submissionDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                        )
                     )
-                    "SUPPLEMENTARY" -> SupplementaryRequest(
-                        requestId = row[AcademicRequestsTable.id].toString(),
-                        regNo = regNo,
-                        unitCode = unitCode,
-                        unitTitle = unitTitle,
-                        previousScore = 35.0,
-                        status = RequestStatus.valueOf(row[AcademicRequestsTable.status]),
-                        submissionDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                    "SUPPLEMENTARY" -> supplementaries.add(
+                        SupplementaryRequest(
+                            requestId = row[AcademicRequestsTable.id].toString(),
+                            regNo = regNo,
+                            unitCode = unitCode,
+                            unitTitle = unitTitle,
+                            previousScore = 35.0,
+                            status = runCatching { RequestStatus.valueOf(row[AcademicRequestsTable.status]) }.getOrDefault(RequestStatus.PENDING),
+                            submissionDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                        )
                     )
-                    else -> MissingMarksDispute(
-                        disputeId = row[AcademicRequestsTable.id].toString(),
-                        regNo = regNo,
-                        unitCode = unitCode,
-                        unitTitle = unitTitle,
-                        lecturerName = "Department",
-                        academicYear = row[AcademicRequestsTable.academicYear],
-                        semester = row[AcademicRequestsTable.semester],
-                        missingComponent = "CAT / Exam",
-                        evidenceNote = row[AcademicRequestsTable.reason],
-                        status = RequestStatus.valueOf(row[AcademicRequestsTable.status]),
-                        submittedDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                    else -> missingMarks.add(
+                        MissingMarksDispute(
+                            disputeId = row[AcademicRequestsTable.id].toString(),
+                            regNo = regNo,
+                            unitCode = unitCode,
+                            unitTitle = unitTitle,
+                            lecturerName = "Department",
+                            academicYear = row[AcademicRequestsTable.academicYear],
+                            semester = row[AcademicRequestsTable.semester],
+                            missingComponent = "CAT / Exam",
+                            evidenceNote = row[AcademicRequestsTable.reason],
+                            status = runCatching { RequestStatus.valueOf(row[AcademicRequestsTable.status]) }.getOrDefault(RequestStatus.PENDING),
+                            submittedDate = row[AcademicRequestsTable.submittedAt] ?: ""
+                        )
                     )
                 }
             }
+
+        AcademicRequestsResponse(
+            specialExams = specialExams,
+            supplementaries = supplementaries,
+            missingMarks = missingMarks
+        )
     }
 
     private val jsonParser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }

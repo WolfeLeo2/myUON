@@ -36,10 +36,10 @@ class DashboardViewModel @Inject constructor(
         authRepository.studentProfile,
         academicRepository.examCard,
         timetableRepository.timetableSlots,
-        feeRepository.semesterFeeStatement,
+        feeRepository.currentSemesterFeeStatement,
         hostelRepository.activeBooking
     ) { student, examCard, slots, fee, booking ->
-        val nextExam = examCard.units.firstOrNull()
+        val nextExam = examCard?.units?.firstOrNull()
         val todaySlots = slots.take(2)
         DashboardUiState(
             student = student,
@@ -57,9 +57,13 @@ class DashboardViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState())
 
     fun refreshPortalData() {
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
         viewModelScope.launch {
             _isSyncing.value = true
-            // Trigger remote repository refreshes
+            feeRepository.refreshFromRemote(regNo, "2025/2026", 2)
+            academicRepository.refreshFromRemote(regNo)
+            timetableRepository.refreshFromRemote(regNo)
+            hostelRepository.refreshFromRemote(regNo)
             _isSyncing.value = false
         }
     }

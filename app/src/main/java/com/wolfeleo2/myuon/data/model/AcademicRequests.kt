@@ -54,3 +54,10 @@ data class MissingMarksDispute(
     val status: RequestStatus = RequestStatus.PENDING,
     val submittedDate: String
 )
+
+@Serializable
+data class AcademicRequestsResponse(
+    val specialExams: List<SpecialExamRequest> = emptyList(),
+    val supplementaries: List<SupplementaryRequest> = emptyList(),
+    val missingMarks: List<MissingMarksDispute> = emptyList()
+)

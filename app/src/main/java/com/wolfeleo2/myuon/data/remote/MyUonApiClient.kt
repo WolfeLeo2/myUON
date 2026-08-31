@@ -114,10 +114,20 @@ class MyUonApiClient @Inject constructor() {
         }
     }
 
-    suspend fun getAvailableUnits(academicYear: String = "2025/2026", semester: Int = 2): List<CourseUnit>? {
+    suspend fun getAvailableUnits(academicYear: String = "2025/2026", semester: Int = 0): List<CourseUnit>? {
         return try {
-            val response = httpClient.get("$baseUrl/units?academicYear=$academicYear&semester=$semester")
+            val query = if (semester in 1..3) "?academicYear=$academicYear&semester=$semester" else ""
+            val response = httpClient.get("$baseUrl/units$query")
             if (response.status.isSuccess()) response.body<List<CourseUnit>>() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun getUnitByCode(unitCode: String): CourseUnit? {
+        return try {
+            val response = httpClient.get("$baseUrl/units/$unitCode")
+            if (response.status.isSuccess()) response.body<CourseUnit>() else null
         } catch (_: Exception) {
             null
         }
@@ -153,10 +163,82 @@ class MyUonApiClient @Inject constructor() {
         }
     }
 
+    suspend fun getExamTimetable(regNo: String): List<ExamTimetableItem>? {
+        return try {
+            val response = httpClient.get("$baseUrl/exams/timetable?regNo=$regNo")
+            if (response.status.isSuccess()) response.body<List<ExamTimetableItem>>() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun getExamCard(regNo: String): ExamCard? {
         return try {
             val response = httpClient.get("$baseUrl/exams/card?regNo=$regNo")
             if (response.status.isSuccess()) response.body<ExamCard>() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun getAcademicRequests(regNo: String): AcademicRequestsResponse? {
+        return try {
+            val response = httpClient.get("$baseUrl/requests?regNo=$regNo")
+            if (response.status.isSuccess()) response.body<AcademicRequestsResponse>() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun submitSpecialExamRequest(request: SpecialExamRequest): Boolean {
+        return try {
+            val response = httpClient.post("$baseUrl/requests/special-exam") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            response.status.isSuccess()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun submitSupplementaryRequest(request: SupplementaryRequest): Boolean {
+        return try {
+            val response = httpClient.post("$baseUrl/requests/supplementary") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            response.status.isSuccess()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun submitMissingMarksDispute(dispute: MissingMarksDispute): Boolean {
+        return try {
+            val response = httpClient.post("$baseUrl/requests/missing-marks") {
+                contentType(ContentType.Application.Json)
+                setBody(dispute)
+            }
+            response.status.isSuccess()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun getAttendanceOverview(regNo: String): List<AttendanceSummary>? {
+        return try {
+            val response = httpClient.get("$baseUrl/attendance/overview?regNo=$regNo")
+            if (response.status.isSuccess()) response.body<List<AttendanceSummary>>() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun getStudentAttendance(regNo: String, unitCode: String): AttendanceSummary? {
+        return try {
+            val response = httpClient.get("$baseUrl/attendance/summary?regNo=$regNo&unitCode=$unitCode")
+            if (response.status.isSuccess()) response.body<AttendanceSummary>() else null
         } catch (_: Exception) {
             null
         }
@@ -222,6 +304,19 @@ class MyUonApiClient @Inject constructor() {
             response.status.isSuccess()
         } catch (_: Exception) {
             false
+        }
+    }
+
+    suspend fun fetchDelta(since: String? = null, regNo: String? = null): com.wolfeleo2.myuon.data.model.SyncDeltaPayload? {
+        return try {
+            val queryParams = mutableListOf<String>()
+            if (!since.isNullOrBlank()) queryParams.add("since=$since")
+            if (!regNo.isNullOrBlank()) queryParams.add("regNo=$regNo")
+            val queryString = if (queryParams.isNotEmpty()) "?" + queryParams.joinToString("&") else ""
+            val response = httpClient.get("$baseUrl/sync/delta$queryString")
+            if (response.status.isSuccess()) response.body<com.wolfeleo2.myuon.data.model.SyncDeltaPayload>() else null
+        } catch (_: Exception) {
+            null
         }
     }
 }

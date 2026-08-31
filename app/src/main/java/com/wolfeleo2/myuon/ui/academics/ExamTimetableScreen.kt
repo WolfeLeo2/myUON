@@ -69,7 +69,7 @@ fun ExamTimetableScreen(
     Scaffold(
         topBar = {
             ExpressiveTopAppBar(
-                title = "University Examination Timetable",
+                title = "Examination Timetable",
                 subtitle = "Semester 2, Academic Year 2025/2026",
                 canNavigateBack = true,
                 onNavigateBack = onBack
@@ -94,7 +94,7 @@ fun ExamTimetableScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search unit code, title, or venue...") },
+                    placeholder = { Text("Search unit code, title, venue...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -281,7 +281,7 @@ private fun ExamScheduleCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${exam.startTime} — ${exam.endTime}",
+                    text = "${exam.startTime.formatTime()} — ${exam.endTime.formatTime()}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -335,4 +335,12 @@ private fun ExamScheduleCard(
             )
         }
     }
+}
+
+private fun String.formatTime(): String {
+    val trimmed = this.trim()
+    val parts = trimmed.split(":")
+    return if (parts.size >= 2) {
+        "${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}"
+    } else trimmed
 }

@@ -27,8 +27,8 @@ object UnitsTable : Table("units") {
 
 object UnitRegistrationsTable : Table("unit_registrations") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
-    val unitCode = varchar("unit_code", 20)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val status = varchar("status", 20).default("REGISTERED")
@@ -39,8 +39,8 @@ object UnitRegistrationsTable : Table("unit_registrations") {
 
 object GradeRecordsTable : Table("grade_records") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
-    val unitCode = varchar("unit_code", 20)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val catMark = double("cat_mark").default(0.0)
@@ -56,7 +56,7 @@ object GradeRecordsTable : Table("grade_records") {
 
 object TimetableItemsTable : Table("timetable_items") {
     val id = uuid("id")
-    val unitCode = varchar("unit_code", 20)
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val dayOfWeek = varchar("day_of_week", 15)
     val startTime = varchar("start_time", 20)
     val endTime = varchar("end_time", 20)
@@ -69,7 +69,7 @@ object TimetableItemsTable : Table("timetable_items") {
 
 object ExamTimetableItemsTable : Table("exam_timetable_items") {
     val id = uuid("id")
-    val unitCode = varchar("unit_code", 20)
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val examDate = varchar("exam_date", 30)
@@ -83,7 +83,7 @@ object ExamTimetableItemsTable : Table("exam_timetable_items") {
 
 object AttendanceSessionsTable : Table("attendance_sessions") {
     val id = uuid("id")
-    val unitCode = varchar("unit_code", 20)
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val weekNumber = integer("week_number")
@@ -95,8 +95,8 @@ object AttendanceSessionsTable : Table("attendance_sessions") {
 
 object StudentAttendanceTable : Table("student_attendance") {
     val id = uuid("id")
-    val sessionId = uuid("session_id")
-    val studentId = varchar("student_id", 64)
+    val sessionId = uuid("session_id") references AttendanceSessionsTable.id
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
     val isAttended = bool("is_attended").default(false)
     val markedAt = varchar("marked_at", 64).nullable()
 
@@ -105,9 +105,9 @@ object StudentAttendanceTable : Table("student_attendance") {
 
 object AcademicRequestsTable : Table("academic_requests") {
     val id = uuid("id")
-    val studentId = varchar("student_id", 64)
+    val studentId = varchar("student_id", 64) references StudentsTable.userId
     val requestType = varchar("request_type", 30)
-    val unitCode = varchar("unit_code", 20)
+    val unitCode = varchar("unit_code", 20) references UnitsTable.code
     val academicYear = varchar("academic_year", 20)
     val semester = integer("semester")
     val reason = text("reason")

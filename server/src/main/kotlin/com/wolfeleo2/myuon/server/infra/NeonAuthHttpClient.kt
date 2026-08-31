@@ -20,6 +20,7 @@ class NeonAuthHttpClient(
     private val serverSecretKey: String = "",
     private val signUpPath: String = "/sign-up/email",
     private val signInPath: String = "/sign-in/email",
+    private val origin: String = baseUrl.substringBefore("/neondb/auth").ifBlank { baseUrl }
 ) : NeonAuthClient {
 
     @Serializable
@@ -31,6 +32,7 @@ class NeonAuthHttpClient(
     @Serializable
     private data class AuthResponse(
         val token: String = "",
+        val redirect: Boolean? = null,
         val session: SessionResponse? = null,
         val user: UserResponse? = null,
         val userId: String? = null,
@@ -49,6 +51,7 @@ class NeonAuthHttpClient(
     private suspend fun request(path: String, email: String, password: String): NeonAuthResult {
         val response = httpClient.post("$baseUrl$path") {
             contentType(ContentType.Application.Json)
+            header("Origin", origin)
             if (projectId.isNotBlank()) header("x-stack-project-id", projectId)
             if (serverSecretKey.isNotBlank()) header("x-stack-secret-server-key", serverSecretKey)
             setBody(CredentialsRequest(email = email, password = password, name = email.substringBefore("@")))

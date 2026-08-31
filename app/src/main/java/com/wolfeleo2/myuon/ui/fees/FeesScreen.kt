@@ -3,9 +3,12 @@ package com.wolfeleo2.myuon.ui.fees
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -138,6 +141,56 @@ fun FeesScreen(
                                         .semantics { role = Role.RadioButton }
                                 ) {
                                     Text(label, style = MaterialTheme.typography.labelMediumEmphasized)
+                                }
+                            }
+                        }
+                    }
+
+                    // Academic Year & Semester Selectors
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            // Year Filter Strip (LazyRow matching Timetable)
+                            LazyRow(
+                                contentPadding = PaddingValues(vertical = Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(uiState.availableYears) { yr ->
+                                    val isSelected = uiState.selectedYear == yr
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { viewModel.selectYear(yr) },
+                                        label = {
+                                            Text(
+                                                text = yr,
+                                                style = MaterialTheme.typography.labelMediumEmphasized
+                                            )
+                                        },
+                                        shapes = FilterChipDefaults.shapes()
+                                    )
+                                }
+                            }
+
+                            // Semester Selector Strip (Only visible in SEMESTER mode)
+                            if (uiState.scopeMode == FeeScopeMode.SEMESTER) {
+                                LazyRow(
+                                    contentPadding = PaddingValues(vertical = Spacing.xs),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(listOf(1 to "Sem 1", 2 to "Sem 2")) { (sem, label) ->
+                                        FilterChip(
+                                            selected = uiState.selectedSemester == sem,
+                                            onClick = { viewModel.selectSemester(sem) },
+                                            label = {
+                                                Text(
+                                                    text = label,
+                                                    style = MaterialTheme.typography.labelMediumEmphasized
+                                                )
+                                            },
+                                            shapes = FilterChipDefaults.shapes()
+                                        )
+                                    }
                                 }
                             }
                         }

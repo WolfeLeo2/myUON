@@ -1,0 +1,1109 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "2228a60b291a7edc422d584e002c37a8",
+    "entities": [
+      {
+        "tableName": "students",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`regNo` TEXT NOT NULL, `fullName` TEXT NOT NULL, `studentEmail` TEXT NOT NULL, `faculty` TEXT NOT NULL, `department` TEXT NOT NULL, `program` TEXT NOT NULL, `yearOfStudy` INTEGER NOT NULL, `semester` INTEGER NOT NULL, `campus` TEXT NOT NULL, `nationalId` TEXT NOT NULL, `mobileNumber` TEXT NOT NULL, `photoUrl` TEXT, `isFeeCleared` INTEGER NOT NULL, `isBiometricEnabled` INTEGER NOT NULL, `currentAverage` REAL NOT NULL, PRIMARY KEY(`regNo`))",
+        "fields": [
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "fullName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "studentEmail",
+            "columnName": "studentEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "faculty",
+            "columnName": "faculty",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "department",
+            "columnName": "department",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "program",
+            "columnName": "program",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "yearOfStudy",
+            "columnName": "yearOfStudy",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campus",
+            "columnName": "campus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nationalId",
+            "columnName": "nationalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mobileNumber",
+            "columnName": "mobileNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoUrl",
+            "columnName": "photoUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFeeCleared",
+            "columnName": "isFeeCleared",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isBiometricEnabled",
+            "columnName": "isBiometricEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentAverage",
+            "columnName": "currentAverage",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "regNo"
+          ]
+        }
+      },
+      {
+        "tableName": "course_units",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `credits` INTEGER NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `lecturerName` TEXT NOT NULL, `lecturerEmail` TEXT NOT NULL, `lecturerOffice` TEXT NOT NULL, `venueName` TEXT NOT NULL, `campus` TEXT NOT NULL, `isCore` INTEGER NOT NULL, `prerequisitesJson` TEXT NOT NULL, `status` TEXT NOT NULL, `scheduleTime` TEXT NOT NULL, `description` TEXT NOT NULL, `syllabusTopicsJson` TEXT NOT NULL, `learningOutcomesJson` TEXT NOT NULL, `recommendedTextbooksJson` TEXT NOT NULL, PRIMARY KEY(`unitCode`))",
+        "fields": [
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "credits",
+            "columnName": "credits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerName",
+            "columnName": "lecturerName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerEmail",
+            "columnName": "lecturerEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerOffice",
+            "columnName": "lecturerOffice",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "venueName",
+            "columnName": "venueName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campus",
+            "columnName": "campus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCore",
+            "columnName": "isCore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prerequisitesJson",
+            "columnName": "prerequisitesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduleTime",
+            "columnName": "scheduleTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syllabusTopicsJson",
+            "columnName": "syllabusTopicsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "learningOutcomesJson",
+            "columnName": "learningOutcomesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recommendedTextbooksJson",
+            "columnName": "recommendedTextbooksJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "unitCode"
+          ]
+        }
+      },
+      {
+        "tableName": "grade_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `credits` INTEGER NOT NULL, `catScore` REAL NOT NULL, `examScore` REAL NOT NULL, `totalScore` REAL NOT NULL, `gradeLetter` TEXT NOT NULL, `isPass` INTEGER NOT NULL, `isSupplementary` INTEGER NOT NULL, `isSpecial` INTEGER NOT NULL, `remarks` TEXT NOT NULL, PRIMARY KEY(`unitCode`, `academicYear`, `semester`))",
+        "fields": [
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "credits",
+            "columnName": "credits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catScore",
+            "columnName": "catScore",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examScore",
+            "columnName": "examScore",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalScore",
+            "columnName": "totalScore",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gradeLetter",
+            "columnName": "gradeLetter",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPass",
+            "columnName": "isPass",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSupplementary",
+            "columnName": "isSupplementary",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSpecial",
+            "columnName": "isSpecial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remarks",
+            "columnName": "remarks",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "unitCode",
+            "academicYear",
+            "semester"
+          ]
+        }
+      },
+      {
+        "tableName": "timetable_slots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dayOfWeek` TEXT NOT NULL, `startTime` TEXT NOT NULL, `endTime` TEXT NOT NULL, `unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `lecturer` TEXT NOT NULL, `lecturerEmail` TEXT NOT NULL, `venue` TEXT NOT NULL, `campus` TEXT NOT NULL, `classType` TEXT NOT NULL, `isOnline` INTEGER NOT NULL, `notes` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTime",
+            "columnName": "startTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTime",
+            "columnName": "endTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturer",
+            "columnName": "lecturer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerEmail",
+            "columnName": "lecturerEmail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "venue",
+            "columnName": "venue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campus",
+            "columnName": "campus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "classType",
+            "columnName": "classType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isOnline",
+            "columnName": "isOnline",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "hostel_halls",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`hallId` TEXT NOT NULL, `hallName` TEXT NOT NULL, `campus` TEXT NOT NULL, `genderTarget` TEXT NOT NULL, `totalRooms` INTEGER NOT NULL, `availableRooms` INTEGER NOT NULL, `rentPerSemester` REAL NOT NULL, `amenitiesJson` TEXT NOT NULL, `imageUrl` TEXT, `isBookingOpen` INTEGER NOT NULL, PRIMARY KEY(`hallId`))",
+        "fields": [
+          {
+            "fieldPath": "hallId",
+            "columnName": "hallId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hallName",
+            "columnName": "hallName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campus",
+            "columnName": "campus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "genderTarget",
+            "columnName": "genderTarget",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRooms",
+            "columnName": "totalRooms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "availableRooms",
+            "columnName": "availableRooms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rentPerSemester",
+            "columnName": "rentPerSemester",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amenitiesJson",
+            "columnName": "amenitiesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageUrl",
+            "columnName": "imageUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isBookingOpen",
+            "columnName": "isBookingOpen",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "hallId"
+          ]
+        }
+      },
+      {
+        "tableName": "hostel_bookings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`bookingId` TEXT NOT NULL, `regNo` TEXT NOT NULL, `hallName` TEXT NOT NULL, `roomNumber` TEXT NOT NULL, `bedSpace` TEXT NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `rentAmount` REAL NOT NULL, `isPaid` INTEGER NOT NULL, `isKeyIssued` INTEGER NOT NULL, `bookedDate` TEXT NOT NULL, PRIMARY KEY(`bookingId`))",
+        "fields": [
+          {
+            "fieldPath": "bookingId",
+            "columnName": "bookingId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hallName",
+            "columnName": "hallName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roomNumber",
+            "columnName": "roomNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bedSpace",
+            "columnName": "bedSpace",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rentAmount",
+            "columnName": "rentAmount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPaid",
+            "columnName": "isPaid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isKeyIssued",
+            "columnName": "isKeyIssued",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookedDate",
+            "columnName": "bookedDate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "bookingId"
+          ]
+        }
+      },
+      {
+        "tableName": "attendance_summaries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `totalLecturesHeld` INTEGER NOT NULL, `lecturesAttended` INTEGER NOT NULL, `totalLabSessionsHeld` INTEGER NOT NULL, `labSessionsAttended` INTEGER NOT NULL, `weeklyBreakdownJson` TEXT NOT NULL, `recentSessionsJson` TEXT NOT NULL, PRIMARY KEY(`unitCode`))",
+        "fields": [
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalLecturesHeld",
+            "columnName": "totalLecturesHeld",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturesAttended",
+            "columnName": "lecturesAttended",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalLabSessionsHeld",
+            "columnName": "totalLabSessionsHeld",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labSessionsAttended",
+            "columnName": "labSessionsAttended",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weeklyBreakdownJson",
+            "columnName": "weeklyBreakdownJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recentSessionsJson",
+            "columnName": "recentSessionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "unitCode"
+          ]
+        }
+      },
+      {
+        "tableName": "fee_statements",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `totalInvoiced` REAL NOT NULL, `totalPaid` REAL NOT NULL, `outstandingBalance` REAL NOT NULL, `helbDisbursed` REAL NOT NULL, `hefScholarship` REAL NOT NULL, `invoiceBreakdownJson` TEXT NOT NULL, `transactionsJson` TEXT NOT NULL, PRIMARY KEY(`academicYear`, `semester`))",
+        "fields": [
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalInvoiced",
+            "columnName": "totalInvoiced",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPaid",
+            "columnName": "totalPaid",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outstandingBalance",
+            "columnName": "outstandingBalance",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "helbDisbursed",
+            "columnName": "helbDisbursed",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hefScholarship",
+            "columnName": "hefScholarship",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "invoiceBreakdownJson",
+            "columnName": "invoiceBreakdownJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transactionsJson",
+            "columnName": "transactionsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "academicYear",
+            "semester"
+          ]
+        }
+      },
+      {
+        "tableName": "exam_cards",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`regNo` TEXT NOT NULL, `cardId` TEXT NOT NULL, `studentName` TEXT NOT NULL, `faculty` TEXT NOT NULL, `program` TEXT NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `passportPhotoUrl` TEXT, `isFeeCleared` INTEGER NOT NULL, `isUnitsApproved` INTEGER NOT NULL, `qrVerificationToken` TEXT NOT NULL, `unitsJson` TEXT NOT NULL, `generatedDate` TEXT NOT NULL, `authorizedBy` TEXT NOT NULL, PRIMARY KEY(`regNo`))",
+        "fields": [
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cardId",
+            "columnName": "cardId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "studentName",
+            "columnName": "studentName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "faculty",
+            "columnName": "faculty",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "program",
+            "columnName": "program",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passportPhotoUrl",
+            "columnName": "passportPhotoUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFeeCleared",
+            "columnName": "isFeeCleared",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isUnitsApproved",
+            "columnName": "isUnitsApproved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qrVerificationToken",
+            "columnName": "qrVerificationToken",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitsJson",
+            "columnName": "unitsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatedDate",
+            "columnName": "generatedDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authorizedBy",
+            "columnName": "authorizedBy",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "regNo"
+          ]
+        }
+      },
+      {
+        "tableName": "exam_timetable_slots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `examDate` TEXT NOT NULL, `dayOfWeek` TEXT NOT NULL, `startTime` TEXT NOT NULL, `endTime` TEXT NOT NULL, `session` TEXT NOT NULL, `venue` TEXT NOT NULL, `campus` TEXT NOT NULL, `faculty` TEXT NOT NULL, `chiefInvigilator` TEXT NOT NULL, `isAuthorized` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examDate",
+            "columnName": "examDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTime",
+            "columnName": "startTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTime",
+            "columnName": "endTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "session",
+            "columnName": "session",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "venue",
+            "columnName": "venue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campus",
+            "columnName": "campus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "faculty",
+            "columnName": "faculty",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chiefInvigilator",
+            "columnName": "chiefInvigilator",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isAuthorized",
+            "columnName": "isAuthorized",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "special_exam_requests",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`requestId` TEXT NOT NULL, `regNo` TEXT NOT NULL, `unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `reasonCategory` TEXT NOT NULL, `explanation` TEXT NOT NULL, `medicalOfficerApproval` INTEGER NOT NULL, `deanApproval` INTEGER NOT NULL, `status` TEXT NOT NULL, `submissionDate` TEXT NOT NULL, PRIMARY KEY(`requestId`))",
+        "fields": [
+          {
+            "fieldPath": "requestId",
+            "columnName": "requestId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reasonCategory",
+            "columnName": "reasonCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "explanation",
+            "columnName": "explanation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medicalOfficerApproval",
+            "columnName": "medicalOfficerApproval",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deanApproval",
+            "columnName": "deanApproval",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "submissionDate",
+            "columnName": "submissionDate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "requestId"
+          ]
+        }
+      },
+      {
+        "tableName": "supplementary_requests",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`requestId` TEXT NOT NULL, `regNo` TEXT NOT NULL, `unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `previousScore` REAL NOT NULL, `feeAmount` REAL NOT NULL, `paymentReference` TEXT, `isPaid` INTEGER NOT NULL, `status` TEXT NOT NULL, `submissionDate` TEXT NOT NULL, PRIMARY KEY(`requestId`))",
+        "fields": [
+          {
+            "fieldPath": "requestId",
+            "columnName": "requestId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousScore",
+            "columnName": "previousScore",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "feeAmount",
+            "columnName": "feeAmount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paymentReference",
+            "columnName": "paymentReference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isPaid",
+            "columnName": "isPaid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "submissionDate",
+            "columnName": "submissionDate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "requestId"
+          ]
+        }
+      },
+      {
+        "tableName": "missing_marks_disputes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`disputeId` TEXT NOT NULL, `regNo` TEXT NOT NULL, `unitCode` TEXT NOT NULL, `unitTitle` TEXT NOT NULL, `lecturerName` TEXT NOT NULL, `academicYear` TEXT NOT NULL, `semester` INTEGER NOT NULL, `missingComponent` TEXT NOT NULL, `evidenceNote` TEXT NOT NULL, `status` TEXT NOT NULL, `submittedDate` TEXT NOT NULL, PRIMARY KEY(`disputeId`))",
+        "fields": [
+          {
+            "fieldPath": "disputeId",
+            "columnName": "disputeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regNo",
+            "columnName": "regNo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitCode",
+            "columnName": "unitCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitTitle",
+            "columnName": "unitTitle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerName",
+            "columnName": "lecturerName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "academicYear",
+            "columnName": "academicYear",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semester",
+            "columnName": "semester",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "missingComponent",
+            "columnName": "missingComponent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evidenceNote",
+            "columnName": "evidenceNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "submittedDate",
+            "columnName": "submittedDate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "disputeId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2228a60b291a7edc422d584e002c37a8')"
+    ]
+  }
+}

@@ -42,10 +42,18 @@ import com.wolfeleo2.myuon.ui.theme.Spacing
 @Composable
 fun AttendanceAnalyticsScreen(
     unitCode: String = "CSC 311",
-    attendanceSummary: AttendanceSummary,
+    attendanceSummary: AttendanceSummary? = null,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val summary = attendanceSummary ?: AttendanceSummary(
+        unitCode = unitCode,
+        unitTitle = "Course Unit Attendance",
+        totalLecturesHeld = 0,
+        lecturesAttended = 0,
+        totalLabSessionsHeld = 0,
+        labSessionsAttended = 0
+    )
     val sharedScope = LocalSharedTransitionScope.current
     val animatedScope = LocalNavAnimatedContentScope.current
     val headlineModifier = if (sharedScope != null) {
@@ -57,7 +65,7 @@ fun AttendanceAnalyticsScreen(
         }
     } else Modifier
 
-    val weeks = attendanceSummary.weeklyBreakdown
+    val weeks = summary.weeklyBreakdown
     // weeklyBreakdown is ordered oldest-to-newest; default to the most recent week.
     var selectedWeekIndex by remember(weeks) { mutableIntStateOf((weeks.size - 1).coerceAtLeast(0)) }
     var isCumulative by remember { mutableStateOf(false) }
@@ -69,7 +77,7 @@ fun AttendanceAnalyticsScreen(
         topBar = {
             ExpressiveTopAppBar(
                 title = "Class Attendance Analytics",
-                subtitle = "${attendanceSummary.unitCode}: ${attendanceSummary.unitTitle}",
+                subtitle = "${summary.unitCode}: ${summary.unitTitle}",
                 canNavigateBack = true,
                 onNavigateBack = onBack,
                 actions = {
@@ -169,7 +177,7 @@ fun AttendanceAnalyticsScreen(
 
             // Big Stat Headline
             item {
-                val displayedPercentage = if (isCumulative) attendanceSummary.overallPercentage else (selectedWeek?.percentageAttended ?: 100.0)
+                val displayedPercentage = if (isCumulative) summary.overallPercentage else (selectedWeek?.percentageAttended ?: 100.0)
 
                 Column(modifier = headlineModifier) {
                     Row(
@@ -195,8 +203,8 @@ fun AttendanceAnalyticsScreen(
 
                     Text(
                         text = if (isCumulative) {
-                            "Senate 75% Rule (semester-to-date): ${attendanceSummary.lecturesAttended + attendanceSummary.labSessionsAttended}/${attendanceSummary.totalLecturesHeld + attendanceSummary.totalLabSessionsHeld} sessions attended. " +
-                                if (attendanceSummary.isSenateThresholdMet) "Threshold met." else "Below threshold."
+                            "Senate 75% Rule (semester-to-date): ${summary.lecturesAttended + summary.labSessionsAttended}/${summary.totalLecturesHeld + summary.totalLabSessionsHeld} sessions attended. " +
+                                if (summary.isSenateThresholdMet) "Threshold met." else "Below threshold."
                         } else {
                             "Senate 75% Rule: this is ${selectedWeek?.weekLabel ?: "this week"} only, not the semester total."
                         },

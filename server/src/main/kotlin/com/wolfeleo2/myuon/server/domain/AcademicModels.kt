@@ -133,12 +133,15 @@ data class ExamTimetableItem(
     val unitCode: String,
     val unitTitle: String,
     val examDate: String,
+    val dayOfWeek: String = "Monday",
     val startTime: String,
     val endTime: String,
+    val session: String = "Morning Session",
     val venue: String,
     val campus: String,
-    val chiefInvigilator: String = "Chief Invigilator",
-    val instructions: String = "Arrive 15 minutes before the start time. Carry your student ID and exam card."
+    val faculty: String = "Faculty of Science & Technology",
+    val chiefInvigilator: String = "Prof. R. Okoth",
+    val isAuthorized: Boolean = true
 )
 
 @Serializable
@@ -269,4 +272,11 @@ data class MissingMarksDispute(
     val evidenceNote: String,
     val status: RequestStatus = RequestStatus.PENDING,
     val submittedDate: String
+)
+
+@Serializable
+data class AcademicRequestsResponse(
+    val specialExams: List<SpecialExamRequest> = emptyList(),
+    val supplementaries: List<SupplementaryRequest> = emptyList(),
+    val missingMarks: List<MissingMarksDispute> = emptyList()
 )

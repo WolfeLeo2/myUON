@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.ktor.server.rate.limit)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.websockets)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

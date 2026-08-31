@@ -3,9 +3,9 @@ package com.wolfeleo2.myuon.data.repo
 import com.wolfeleo2.myuon.data.db.HostelDao
 import com.wolfeleo2.myuon.data.db.toDomain
 import com.wolfeleo2.myuon.data.db.toEntity
-import com.wolfeleo2.myuon.data.model.GenderTarget
 import com.wolfeleo2.myuon.data.model.HostelHall
 import com.wolfeleo2.myuon.data.model.HostelRoomBooking
+import com.wolfeleo2.myuon.data.preferences.UserPreferencesDataStore
 import com.wolfeleo2.myuon.data.remote.MyUonApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,36 +25,15 @@ import javax.inject.Singleton
 @Singleton
 class HostelRepository @Inject constructor(
     private val apiClient: MyUonApiClient,
-    private val hostelDao: HostelDao
+    private val hostelDao: HostelDao,
+    private val preferencesDataStore: UserPreferencesDataStore
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val defaultHalls = listOf(
-        HostelHall("HALL-01", "Hall 1 (Main Campus)", "Main Campus", GenderTarget.MALE, 120, 14, 6500.0, true),
-        HostelHall("HALL-02", "Hall 2 (Chiromo)", "Chiromo Campus", GenderTarget.MALE, 90, 8, 7000.0, true),
-        HostelHall("HALL-03", "Hall 3 (Women's Hall)", "Main Campus", GenderTarget.FEMALE, 150, 22, 6500.0, true),
-        HostelHall("HALL-04", "Prefabs (Chiromo)", "Chiromo Campus", GenderTarget.MALE, 60, 4, 5500.0, true),
-        HostelHall("HALL-05", "Parklands Annex", "Parklands Campus", GenderTarget.CO_ED, 80, 0, 8000.0, false)
-    )
-
-    private val _hostels = MutableStateFlow<List<HostelHall>>(defaultHalls)
+    private val _hostels = MutableStateFlow<List<HostelHall>>(emptyList())
     val hostels: StateFlow<List<HostelHall>> = _hostels.asStateFlow()
 
-    private val _activeBooking = MutableStateFlow<HostelRoomBooking?>(
-        HostelRoomBooking(
-            bookingId = "BK-994821",
-            regNo = "P15/12345/2022",
-            hallName = "Hall 2 (Chiromo)",
-            roomNumber = "RM-204",
-            bedSpace = "A",
-            academicYear = "2025/2026",
-            semester = 2,
-            rentAmount = 7000.0,
-            isPaid = true,
-            isKeyIssued = true,
-            bookedDate = "15 Jan 2026"
-        )
-    )
+    private val _activeBooking = MutableStateFlow<HostelRoomBooking?>(null)
     val activeBooking: StateFlow<HostelRoomBooking?> = _activeBooking.asStateFlow()
 
     init {
@@ -62,10 +41,16 @@ class HostelRepository @Inject constructor(
             val cached = hostelDao.getAllHalls().firstOrNull()?.map { it.toDomain() } ?: emptyList()
             if (cached.isNotEmpty()) {
                 _hostels.value = cached
-            } else {
-                hostelDao.insertHalls(defaultHalls.map { it.toEntity() })
             }
-            refreshFromRemote("P15/12345/2022")
+            preferencesDataStore.activeStudentRegNo.collect { regNo ->
+                if (!regNo.isNullOrBlank()) {
+                    val cachedBooking = hostelDao.getActiveBooking(regNo).firstOrNull()?.toDomain()
+                    if (cachedBooking != null) {
+                        _activeBooking.value = cachedBooking
+                    }
+                    refreshFromRemote(regNo)
+                }
+            }
         }
     }
 
@@ -78,6 +63,7 @@ class HostelRepository @Inject constructor(
         val remoteBooking = apiClient.getHostelBooking(regNo)
         if (remoteBooking != null) {
             _activeBooking.value = remoteBooking
+            hostelDao.insertBooking(remoteBooking.toEntity())
         }
     }
 
@@ -107,6 +93,7 @@ class HostelRepository @Inject constructor(
         apiClient.bookHostel(regNo, hall.hallName, roomNumber, bedSpace, hall.rentPerSemester)
 
         _activeBooking.value = booking
+        scope.launch { hostelDao.insertBooking(booking.toEntity()) }
         val updated = _hostels.value.map {
             if (it.hallId == hall.hallId) {
                 it.copy(availableRooms = (it.availableRooms - 1).coerceAtLeast(0))
@@ -123,7 +110,9 @@ class HostelRepository @Inject constructor(
 
         apiClient.payHostel(booking.bookingId)
 
-        _activeBooking.value = booking.copy(isPaid = true)
+        val updatedBooking = booking.copy(isPaid = true)
+        _activeBooking.value = updatedBooking
+        scope.launch { hostelDao.insertBooking(updatedBooking.toEntity()) }
         return true
     }
 }

@@ -237,7 +237,7 @@ fun DashboardScreen(
                                                     text = "${student.campus} • ${student.faculty}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.Medium,
-                                                    maxLines = 1,
+                                                    maxLines = 2,
                                                     overflow = TextOverflow.Ellipsis,
                                                     modifier = Modifier.weight(1f)
                                                 )
@@ -254,11 +254,6 @@ fun DashboardScreen(
                                                     text = "Valid: 2022 — 2026",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                                Text(
-                                                    text = "Smart Chip ID: UON-NFC-${student.regNo.takeLast(4)}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }

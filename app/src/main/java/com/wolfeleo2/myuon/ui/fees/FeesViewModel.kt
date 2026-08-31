@@ -22,6 +22,7 @@ data class FeesUiState(
     val scopeMode: FeeScopeMode = FeeScopeMode.SEMESTER,
     val selectedYear: String = "2025/2026",
     val selectedSemester: Int = 2,
+    val availableYears: List<String> = listOf("2023/2024", "2024/2025", "2025/2026", "2026/2027"),
     val isProcessingPayment: Boolean = false,
     val paymentSuccessMessage: String? = null,
     val isRefreshing: Boolean = false
@@ -42,21 +43,17 @@ class FeesViewModel @Inject constructor(
 
     val uiState: StateFlow<FeesUiState> = combine(
         authRepository.studentProfile,
-        feeRepository.semesterFeeStatement,
-        feeRepository.academicYearFeeStatement,
+        feeRepository.scopedFeeStatement,
         _scopeMode,
-        _selectedYear
-    ) { student, semStatement, yearStatement, scope, year ->
-        val activeStatement = when (scope) {
-            FeeScopeMode.SEMESTER -> semStatement
-            FeeScopeMode.ACADEMIC_YEAR -> yearStatement
-        }
+        _selectedYear,
+        _selectedSemester
+    ) { student, scopedStatement, scope, year, sem ->
         FeesUiState(
             student = student,
-            feeStatement = activeStatement,
+            feeStatement = scopedStatement,
             scopeMode = scope,
             selectedYear = year,
-            selectedSemester = if (scope == FeeScopeMode.SEMESTER) 2 else 0
+            selectedSemester = sem
         )
     }.combine(_isProcessing) { state, processing ->
         state.copy(isProcessingPayment = processing)
@@ -66,23 +63,47 @@ class FeesViewModel @Inject constructor(
         state.copy(isRefreshing = refreshing)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FeesUiState())
 
+    init {
+        viewModelScope.launch {
+            authRepository.studentProfile.collect { student ->
+                if (student != null) {
+                    feeRepository.loadStatementForScope(student.regNo, _selectedYear.value, _selectedSemester.value, _scopeMode.value)
+                }
+            }
+        }
+    }
+
     fun refreshData() {
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
+            feeRepository.loadStatementForScope(regNo, _selectedYear.value, _selectedSemester.value, _scopeMode.value)
             _isRefreshing.value = false
         }
     }
 
     fun setScopeMode(mode: FeeScopeMode) {
         _scopeMode.value = mode
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
+        viewModelScope.launch {
+            feeRepository.loadStatementForScope(regNo, _selectedYear.value, _selectedSemester.value, mode)
+        }
     }
 
     fun selectYear(year: String) {
         _selectedYear.value = year
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
+        viewModelScope.launch {
+            feeRepository.loadStatementForScope(regNo, year, _selectedSemester.value, _scopeMode.value)
+        }
     }
 
     fun selectSemester(sem: Int) {
         _selectedSemester.value = sem
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
+        viewModelScope.launch {
+            feeRepository.loadStatementForScope(regNo, _selectedYear.value, sem, _scopeMode.value)
+        }
     }
 
     fun makeMpesaPayment(amount: Double, code: String) {
@@ -92,7 +113,7 @@ class FeesViewModel @Inject constructor(
             _isProcessing.value = false
             _message.value = if (success) {
                 "Payment of KES ${amount.toInt()} successfully recorded and reconciled with SMIS!"
-            } else if (amount > feeRepository.semesterFeeStatement.value.outstandingBalance) {
+            } else if (amount > (uiState.value.feeStatement?.outstandingBalance ?: 0.0)) {
                 "Payment of KES ${amount.toInt()} exceeds your outstanding balance."
             } else {
                 "Payment could not be processed."

@@ -20,8 +20,8 @@ data class AcademicsUiState(
     val student: StudentProfile? = null,
     val selectedTab: AcademicsTab = AcademicsTab.GRADES,
     val selectedYear: String = "2025/2026",
-    val selectedSemester: Int = 1,
-    val availableYears: List<String> = listOf("2025/2026", "2024/2025"),
+    val selectedSemester: Int = 2,
+    val availableYears: List<String> = listOf("2023/2024", "2024/2025", "2025/2026"),
     val gradeRecords: List<GradeRecord> = emptyList(),
     val courseUnits: List<CourseUnit> = emptyList(),
     val examCard: ExamCard? = null,
@@ -42,7 +42,7 @@ class AcademicsViewModel @Inject constructor(
 
     private val _selectedTab = MutableStateFlow(AcademicsTab.GRADES)
     private val _selectedYear = MutableStateFlow("2025/2026")
-    private val _selectedSemester = MutableStateFlow(1)
+    private val _selectedSemester = MutableStateFlow(2)
     private val _isRegistering = MutableStateFlow(false)
     private val _registrationMessage = MutableStateFlow<String?>(null)
     private val _isRefreshing = MutableStateFlow(false)
@@ -55,13 +55,16 @@ class AcademicsViewModel @Inject constructor(
         _selectedSemester,
         academicRepository.gradeRecords
     ) { student, tab, year, sem, grades ->
+        val distinctYears = (listOf("2023/2024", "2024/2025", "2025/2026") + grades.map { it.academicYear }).distinct().sortedDescending()
         val filteredGrades = grades.filter { it.academicYear == year && it.semester == sem }
+        val displayedGrades = if (filteredGrades.isNotEmpty()) filteredGrades else grades.filter { it.academicYear == year }
         AcademicsUiState(
             student = student,
             selectedTab = tab,
             selectedYear = year,
             selectedSemester = sem,
-            gradeRecords = if (filteredGrades.isNotEmpty()) filteredGrades else grades.take(5)
+            availableYears = distinctYears,
+            gradeRecords = displayedGrades
         )
     }.combine(academicRepository.courseUnits) { state, units ->
         state.copy(courseUnits = units)
@@ -83,9 +86,25 @@ class AcademicsViewModel @Inject constructor(
         state.copy(isLoading = loading)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AcademicsUiState())
 
+    init {
+        viewModelScope.launch {
+            authRepository.studentProfile.collect { student ->
+                if (student != null) {
+                    if (academicRepository.gradeRecords.value.isEmpty() || academicRepository.courseUnits.value.isEmpty()) {
+                        _isLoading.value = true
+                        academicRepository.refreshFromRemote(student.regNo)
+                        _isLoading.value = false
+                    }
+                }
+            }
+        }
+    }
+
     fun refreshData() {
+        val regNo = authRepository.studentProfile.value?.regNo ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
+            academicRepository.refreshFromRemote(regNo)
             _isRefreshing.value = false
         }
     }
@@ -120,7 +139,7 @@ class AcademicsViewModel @Inject constructor(
     }
 
     fun submitSpecialExam(unitCode: String, unitTitle: String, reason: String, explanation: String): Boolean {
-        val regNo = uiState.value.student?.regNo ?: "P15/12345/2022"
+        val regNo = uiState.value.student?.regNo ?: return false
         val success = academicRepository.submitSpecialExamRequest(regNo, unitCode, unitTitle, reason, explanation)
         _registrationMessage.value = if (success) {
             "Special exam request submitted."
@@ -131,7 +150,7 @@ class AcademicsViewModel @Inject constructor(
     }
 
     fun submitSupplementary(unitCode: String, unitTitle: String, previousScore: Double, paymentRef: String): Boolean {
-        val regNo = uiState.value.student?.regNo ?: "P15/12345/2022"
+        val regNo = uiState.value.student?.regNo ?: return false
         val success = academicRepository.submitSupplementaryRequest(regNo, unitCode, unitTitle, previousScore, paymentRef)
         _registrationMessage.value = if (success) {
             "Supplementary exam registered."
@@ -142,7 +161,7 @@ class AcademicsViewModel @Inject constructor(
     }
 
     fun submitMissingMarks(unitCode: String, unitTitle: String, lecturer: String, component: String, note: String): Boolean {
-        val regNo = uiState.value.student?.regNo ?: "P15/12345/2022"
+        val regNo = uiState.value.student?.regNo ?: return false
         val success = academicRepository.submitMissingMarksDispute(regNo, unitCode, unitTitle, lecturer, component, note)
         _registrationMessage.value = if (success) {
             "Missing marks dispute submitted."
@@ -150,5 +169,11 @@ class AcademicsViewModel @Inject constructor(
             "You already have a request in progress for this unit."
         }
         return success
+    }
+
+    fun loadUnitDetail(unitCode: String) {
+        viewModelScope.launch {
+            academicRepository.getUnitByCode(unitCode)
+        }
     }
 }

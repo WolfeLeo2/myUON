@@ -1,9 +1,20 @@
 package com.wolfeleo2.myuon.ui.auth
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,10 +23,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -71,6 +85,10 @@ fun LoginScreenContent(
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isCampusDropdownExpanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    // Shared IME config for every field that isn't the last one.
+    val nextFieldKeyboard = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -78,19 +96,28 @@ fun LoginScreenContent(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // University Crest / Symbol - Expressive Upgrade
-            ExpressiveShapeBadge(
-                polygon = ExpressivePolygons.Sunny,
-                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.primary,
-                size = 100.dp,
-                icon = Icons.Default.School
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.md))
+            // Crest reacts to the form's mode — the header is part of the state, not decoration.
+            AnimatedContent(
+                targetState = uiState.isSignUpMode,
+                transitionSpec = {
+                    (fadeIn(tween(260)) + scaleIn(tween(300), initialScale = 0.85f)) togetherWith
+                            (fadeOut(tween(180)) + scaleOut(tween(220), targetScale = 0.85f))
+                },
+                label = "crest"
+            ) { signUp ->
+                ExpressiveShapeBadge(
+                    polygon = if (signUp) ExpressivePolygons.Clover4Leaf else ExpressivePolygons.Sunny,
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    size = 100.dp,
+                    icon = if (signUp) Icons.Default.PersonAdd else Icons.Default.School,
+                    modifier = Modifier.padding(bottom = Spacing.md)
+                )
+            }
 
             Text(
                 text = "myUON",
@@ -114,15 +141,27 @@ fun LoginScreenContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(Spacing.lg)) {
-                    Text(
-                        text = if (uiState.isSignUpMode) "Create Student Account" else "Authentication Mode",
-                        style = MaterialTheme.typography.titleMediumEmphasized,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    AnimatedContent(
+                        targetState = uiState.isSignUpMode,
+                        transitionSpec = {
+                            fadeIn(tween(200)) togetherWith fadeOut(tween(140))
+                        },
+                        label = "cardTitle"
+                    ) { signUp ->
+                        Text(
+                            text = if (signUp) "Create Student Account" else "Authentication Mode",
+                            style = MaterialTheme.typography.titleMediumEmphasized,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
-                    if (!uiState.isSignUpMode) {
-                        // Connected Button Group for Login Mode Selection
+                    // Login-mode switch — only relevant when signing in.
+                    AnimatedVisibility(
+                        visible = !uiState.isSignUpMode,
+                        enter = fadeIn(tween(220)) + expandVertically(tween(280)),
+                        exit = fadeOut(tween(160)) + shrinkVertically(tween(240))
+                    ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -150,145 +189,214 @@ fun LoginScreenContent(
                                 Text("AD Account", style = MaterialTheme.typography.labelMediumEmphasized)
                             }
                         }
-                    } else {
+                    }
+
+                    AnimatedVisibility(
+                        visible = uiState.isSignUpMode,
+                        enter = fadeIn(tween(220)) + expandVertically(tween(280)),
+                        exit = fadeOut(tween(160)) + shrinkVertically(tween(240))
+                    ) {
                         Spacer(modifier = Modifier.height(Spacing.md))
                     }
 
-                    if (uiState.isSignUpMode) {
-                        OutlinedTextField(
-                            value = uiState.fullName,
-                            onValueChange = onFullNameChanged,
-                            label = { Text("Full Name") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                    }
-
-                    if (uiState.isSignUpMode || !uiState.isAdLoginMode) {
-                        OutlinedTextField(
-                            value = uiState.regNo,
-                            onValueChange = onRegNoChanged,
-                            label = { Text("Registration Number (e.g. P15/12345/2022)") },
-                            leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                    }
-
-                    if (uiState.isSignUpMode || uiState.isAdLoginMode) {
-                        OutlinedTextField(
-                            value = uiState.adEmail,
-                            onValueChange = onAdEmailChanged,
-                            label = { Text("Student Email (@students.uonbi.ac.ke)") },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                    }
-
-                    // Campus Dropdown for Sign Up
-                    if (uiState.isSignUpMode) {
-                        ExposedDropdownMenuBox(
-                            expanded = isCampusDropdownExpanded,
-                            onExpandedChange = { isCampusDropdownExpanded = !isCampusDropdownExpanded },
-                            modifier = Modifier.fillMaxWidth()
+                    // Form Content
+                    Column(
+                        modifier = Modifier.padding(top = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        // Registration number — always visible in sign-up, or in SMIS sign-in.
+                        AnimatedVisibility(
+                            visible = uiState.isSignUpMode || !uiState.isAdLoginMode,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
                         ) {
                             OutlinedTextField(
-                                value = uiState.campus,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Campus") },
-                                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCampusDropdownExpanded) },
+                                value = uiState.regNo,
+                                onValueChange = onRegNoChanged,
+                                label = { Text("Registration Number") },
+                                placeholder = { Text("e.g. C01/12345/2026") },
+                                leadingIcon = { Icon(Icons.Default.Badge, contentDescription = "ID Badge") },
+                                isError = uiState.regNoError != null,
+                                supportingText = uiState.regNoError?.let { { Text(it) } },
+                                singleLine = true,
                                 shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                                    .fillMaxWidth()
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = nextFieldKeyboard,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            ExposedDropdownMenu(
-                                expanded = isCampusDropdownExpanded,
-                                onDismissRequest = { isCampusDropdownExpanded = false }
-                            ) {
-                                UonCampuses.ALL.forEach { campusOption ->
-                                    DropdownMenuItem(
-                                        text = { Text(campusOption) },
-                                        onClick = {
-                                            onCampusSelected(campusOption)
-                                            isCampusDropdownExpanded = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        }
+
+                        // Student email — always visible in sign-up, or in AD sign-in.
+                        AnimatedVisibility(
+                            visible = uiState.isSignUpMode || uiState.isAdLoginMode,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.adEmail,
+                                onValueChange = onAdEmailChanged,
+                                label = { Text("Student Email") },
+                                placeholder = { Text("username@students.uonbi.ac.ke") },
+                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") },
+                                isError = uiState.adEmailError != null,
+                                supportingText = uiState.adEmailError?.let { { Text(it) } },
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = nextFieldKeyboard,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // Sign-Up Specific Fields
+                        AnimatedVisibility(
+                            visible = uiState.isSignUpMode,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                                OutlinedTextField(
+                                    value = uiState.fullName,
+                                    onValueChange = onFullNameChanged,
+                                    label = { Text("Full Name") },
+                                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Name") },
+                                    isError = uiState.fullNameError != null,
+                                    supportingText = uiState.fullNameError?.let { { Text(it) } },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Text,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = nextFieldKeyboard,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                ExposedDropdownMenuBox(
+                                    expanded = isCampusDropdownExpanded,
+                                    onExpandedChange = { isCampusDropdownExpanded = !isCampusDropdownExpanded },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    OutlinedTextField(
+                                        value = uiState.campus,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Campus") },
+                                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = "Location") },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCampusDropdownExpanded) },
+                                        shape = RoundedCornerShape(16.dp),
+                                        modifier = Modifier
+                                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                                            .fillMaxWidth()
                                     )
+                                    ExposedDropdownMenu(
+                                        expanded = isCampusDropdownExpanded,
+                                        onDismissRequest = { isCampusDropdownExpanded = false }
+                                    ) {
+                                        UonCampuses.ALL.forEach { campusOption ->
+                                            DropdownMenuItem(
+                                                text = { Text(campusOption) },
+                                                onClick = {
+                                                    onCampusSelected(campusOption)
+                                                    isCampusDropdownExpanded = false
+                                                },
+                                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                            )
+                                        }
+                                    }
                                 }
+
+                                OutlinedTextField(
+                                    value = uiState.program,
+                                    onValueChange = onProgramChanged,
+                                    label = { Text("Degree Program") },
+                                    leadingIcon = { Icon(Icons.Default.School, contentDescription = "Education") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Text,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = nextFieldKeyboard,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                OutlinedTextField(
+                                    value = uiState.mobileNumber,
+                                    onValueChange = onMobileNumberChanged,
+                                    label = { Text("Mobile Number") },
+                                    placeholder = { Text("e.g. 0712345678") },
+                                    leadingIcon = { Icon(Icons.Default.Phone, contentDescription = "Phone") },
+                                    isError = uiState.mobileNumberError != null,
+                                    supportingText = uiState.mobileNumberError?.let { { Text(it) } },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Phone,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = nextFieldKeyboard,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(Spacing.md))
-
                         OutlinedTextField(
-                            value = uiState.program,
-                            onValueChange = onProgramChanged,
-                            label = { Text("Degree Program") },
-                            leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
+                            value = uiState.password,
+                            onValueChange = onPasswordChanged,
+                            label = { Text("Portal Password") },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password") },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { isPasswordVisible = !isPasswordVisible },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (isPasswordVisible) "Hide password" else "Show password"
+                                    )
+                                }
+                            },
+                            isError = uiState.passwordError != null,
+                            supportingText = uiState.passwordError?.let { { Text(it) } },
+                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    onSubmitClick()
+                                }
+                            ),
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
-
-                        OutlinedTextField(
-                            value = uiState.mobileNumber,
-                            onValueChange = onMobileNumberChanged,
-                            label = { Text("Mobile Number (e.g. 0712345678)") },
-                            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
                     }
 
-                    OutlinedTextField(
-                        value = uiState.password,
-                        onValueChange = onPasswordChanged,
-                        label = { Text("Portal Password") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { isPasswordVisible = !isPasswordVisible },
-                                shapes = IconButtonDefaults.shapes()
-                            ) {
-                                Icon(
-                                    imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (uiState.errorMessage != null) {
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        Text(
-                            text = uiState.errorMessage.orEmpty(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                    // Form-level failures (bad credentials, network) — field-specific
+                    // problems now surface inline on the field itself.
+                    AnimatedVisibility(
+                        visible = uiState.errorMessage != null,
+                        enter = fadeIn(tween(200)) + expandVertically(tween(240)),
+                        exit = fadeOut(tween(140)) + shrinkVertically(tween(200))
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            Text(
+                                text = uiState.errorMessage.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(Spacing.lg))
@@ -300,10 +408,16 @@ fun LoginScreenContent(
                             .fillMaxWidth()
                             .height(52.dp)
                     ) {
-                        Text(
-                            text = if (uiState.isSignUpMode) "Register Student Account" else "Access Student Portal",
-                            style = MaterialTheme.typography.labelLargeEmphasized
-                        )
+                        AnimatedContent(
+                            targetState = uiState.isSignUpMode,
+                            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(140)) },
+                            label = "submitLabel"
+                        ) { signUp ->
+                            Text(
+                                text = if (signUp) "Register Student Account" else "Access Student Portal",
+                                style = MaterialTheme.typography.labelLargeEmphasized
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(Spacing.sm))
